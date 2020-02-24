@@ -85,7 +85,9 @@ if (array_key_exists('auth', $_GET)) {
                         "qualification" => strip_tags($courseparts[7]),
                         "days" => []
                     ];
-                    $courselink = $dom->loadStr($courseparts[9]->innerHtml)->find('a')->getAttribute('href');
+                    // dump($courseparts);
+                    // die();
+                    $courselink = $dom->loadStr($courseparts[7]->innerHtml)->find('a')->getAttribute('href');
                     $details_html = (string) $client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
 
                     $dom = new Dom;
