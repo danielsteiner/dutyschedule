@@ -17,9 +17,6 @@ if (array_key_exists('auth', $_GET)) {
 
         $log->info("Request for " . $username);
 
-        header('Content-Type: text/calendar; charset=utf-8');
-        header('Content-Disposition: attachment; filename=dutyschedule.ics');
-
         $header_path = "/Kripo/Header.aspx";
         $niu_today_path = "/Kripo/Today/Today.aspx";
         $statistics_path = "/Kripo/DutyRoster/EmployeeDutyStatistic.aspx?EmployeeNumberID=";
@@ -201,7 +198,11 @@ if (array_key_exists('auth', $_GET)) {
             foreach (preg_split("/((\r?\n)|(\r\n?))/", $vcal) as $line) {
                 $fixedVcal .= splitLine($line);
             }
-            echo $fixedVcal;
+
+	        header('Content-Type: text/calendar; charset=utf-8');
+	        header('Content-Disposition: attachment; filename=dutyschedule.ics');
+
+	        echo $fixedVcal;
             die();
         } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {
             print_r($rex);
