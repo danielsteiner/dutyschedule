@@ -5,7 +5,8 @@ use Models\Logs;
 use PHPHtmlParser\Dom;
 
 $client = new GuzzleHttp\Client([
-    'base_uri' => env("DATASOURCE_URL")
+    'base_uri' => env("DATASOURCE_URL"),
+	"verify" => false,
 ]);
 $jar = new \GuzzleHttp\Cookie\CookieJar;
 if (array_key_exists('auth', $_GET)) {
