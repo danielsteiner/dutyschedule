@@ -5,7 +5,8 @@ use Models\Logs;
 use PHPHtmlParser\Dom;
 
 $client = new GuzzleHttp\Client([
-    'base_uri' => env("DATASOURCE_URL")
+    'base_uri' => env("DATASOURCE_URL"),
+	"verify" => false,
 ]);
 $jar = new \GuzzleHttp\Cookie\CookieJar;
 if (array_key_exists('auth', $_GET)) {
@@ -17,16 +18,17 @@ if (array_key_exists('auth', $_GET)) {
 
         $log->info("Request for " . $username);
 
+        $base_uri = $client->getConfig("base_uri");
         $header_path = "/Kripo/Header.aspx";
         $niu_today_path = "/Kripo/Today/Today.aspx";
         $statistics_path = "/Kripo/DutyRoster/EmployeeDutyStatistic.aspx?EmployeeNumberID=";
         $course_path = "/Kripo/Kufer/SearchCourse.aspx?EmployeeId=";
 
         try {
-            $auth = $client->request('GET', '/', ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+            $auth = $client->request('GET', $base_uri, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
             $header_response = $client->request('GET', $header_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-            $header = (string) $header_response->getBody();
+            $header = (string)$header_response->getBody();
 
             $dom = new Dom;
             $dom->loadStr($header);
@@ -42,7 +44,7 @@ if (array_key_exists('auth', $_GET)) {
             $courses_response = $client->request('GET', $course_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
             $dom = new Dom;
-            $dom->loadStr((string) $courses_response->getBody());
+            $dom->loadStr((string)$courses_response->getBody());
             $eventvalidation = $dom->find('#__EVENTVALIDATION')->getAttribute("value");
             $keypostfix = $dom->find('#__KeyPostfix')->getAttribute("value");
 
@@ -62,7 +64,7 @@ if (array_key_exists('auth', $_GET)) {
             ];
 
             $courses_response = $client->request('POST', $course_path . $userid, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-            $courses = (string) $courses_response->getBody();
+            $courses = (string)$courses_response->getBody();
             $dom->loadStr($courses);
             $courseTable = $dom->loadStr($dom->find('#ctl00_main_m_CourseList__CourseTable'));
             $courses = $courseTable->find('tr');
@@ -84,8 +86,16 @@ if (array_key_exists('auth', $_GET)) {
                     ];
                     // dump($courseparts);
                     // die();
-                    $courselink = $dom->loadStr($courseparts[7]->innerHtml)->find('a')->getAttribute('href');
-                    $details_html = (string) $client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
+                    $course_link = $dom->loadStr($courseparts[9]->innerHtml);
+                    $a = null;
+                    if ($course_link->hasChildren()) {
+                        $a = $course_link->find('a');
+                        if ($a->count()) {
+                            continue;
+                        }
+                    }
+                    $courselink = $a->getAttribute('href');
+                    $details_html = (string)$client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
 
                     $dom = new Dom;
                     $dom->loadStr($details_html);
@@ -109,6 +119,7 @@ if (array_key_exists('auth', $_GET)) {
                         ];
                         $c["days"][] = $darray;
                     }
+
                     $d = new Dom;
                     $lecturerRow = $dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
                     try {
@@ -118,7 +129,7 @@ if (array_key_exists('auth', $_GET)) {
                     } catch (\PHPHtmlParser\Exceptions\EmptyCollectionException $ex) {
                         $c["lecturers"] = "Keine Vortragenden Angegeben oder sie konnten nicht ausgelesen werden.";
                     }
-                    //grab infos 
+                    //grab infos
                     $detailrows = $dom->loadStr(($dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
 
                     $infos = $detailrows[count($detailrows) - 1];
@@ -131,7 +142,7 @@ if (array_key_exists('auth', $_GET)) {
             $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
             $dom = new Dom;
-            $dom->loadStr((string) $statistics_response->getBody());
+            $dom->loadStr((string)$statistics_response->getBody());
             $eventvalidation = $dom->find('#__EVENTVALIDATION')->getAttribute("value");
             $keypostfix = $dom->find('#__KeyPostfix')->getAttribute("value");
             $postData = [
@@ -149,7 +160,7 @@ if (array_key_exists('auth', $_GET)) {
             ];
             $statistics_response = $client->request('POST', $statistics_path . $userid, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
-            $statistics = (string) $statistics_response->getBody();
+            $statistics = (string)$statistics_response->getBody();
 
             $dom = new Dom;
             $dom->loadStr($statistics);
@@ -199,10 +210,10 @@ if (array_key_exists('auth', $_GET)) {
                 $fixedVcal .= splitLine($line);
             }
 
-	        header('Content-Type: text/calendar; charset=utf-8');
-	        header('Content-Disposition: attachment; filename=dutyschedule.ics');
+            header('Content-Type: text/calendar; charset=utf-8');
+            header('Content-Disposition: attachment; filename=dutyschedule.ics');
 
-	        echo $fixedVcal;
+            echo $fixedVcal;
             die();
         } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {
             print_r($rex);
