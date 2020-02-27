@@ -92,53 +92,53 @@ if (array_key_exists('auth', $_GET)) {
                         $a = null;
                         if ($course_link->hasChildren()) {
                             $a = $course_link->find('a');
-                            if ($a->count()) {
-                                continue;
+                        }
+
+                        if (is_object($a))
+                        {
+                            $courselink = $a->getAttribute('href');
+                            $details_html = (string)$client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
+
+                            $dom = new Dom;
+                            $dom->loadStr($details_html);
+                            $html = $dom->innerHtml;
+
+                            $d = new Dom;
+                            $daysRow = $dom->find('#ctl00_main_m_DaysRow');
+                            $days = $d->loadStr($daysRow)->find(".MessageTable tr");
+                            unset($days[0]);
+
+                            foreach ($days as $day) {
+                                $d = $dom->loadStr($day->innerHtml)->find('td');
+                                $darray = [
+                                    "date" => $d[0]->innerHtml,
+                                    "from" => explode(" - ", $d[1]->innerHtml)[0],
+                                    "to" => explode(" - ", $d[1]->innerHtml)[1],
+                                    "location" => $d[2]->innerHtml,
+                                    "floor" => $d[3]->innerHtml,
+                                    "room" => $d[4]->innerHtml,
+                                    "description" => $d[5]->innerHtml,
+                                ];
+                                $c["days"][] = $darray;
                             }
+
+                            $d = new Dom;
+                            $lecturerRow = $dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
+                            try {
+                                $tmp = $d->loadStr($lecturerRow->innerHtml)->find("td");
+                                $lecturers = $tmp[1]->innerHtml;
+                                $c["lecturers"] = strip_tags(str_replace("<br />", ",", str_replace(",", "", $lecturers)));
+                            } catch (\PHPHtmlParser\Exceptions\EmptyCollectionException $ex) {
+                                $c["lecturers"] = "Keine Vortragenden Angegeben oder sie konnten nicht ausgelesen werden.";
+                            }
+                            //grab infos
+                            $detailrows = $dom->loadStr(($dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
+
+                            $infos = $detailrows[count($detailrows) - 1];
+                            $info = $d->loadStr($infos->innerHtml)->find("td")[1];
+                            $c["description"] = strip_tags($info->innerHtml);
+                            $courseArray[] = $c;
                         }
-                    
-                        $courselink = $a->getAttribute('href');
-                        $details_html = (string)$client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
-                    
-                        $dom = new Dom;
-                        $dom->loadStr($details_html);
-                        $html = $dom->innerHtml;
-
-                        $d = new Dom;
-                        $daysRow = $dom->find('#ctl00_main_m_DaysRow');
-                        $days = $d->loadStr($daysRow)->find(".MessageTable tr");
-                        unset($days[0]);
-
-                        foreach ($days as $day) {
-                            $d = $dom->loadStr($day->innerHtml)->find('td');
-                            $darray = [
-                                "date" => $d[0]->innerHtml,
-                                "from" => explode(" - ", $d[1]->innerHtml)[0],
-                                "to" => explode(" - ", $d[1]->innerHtml)[1],
-                                "location" => $d[2]->innerHtml,
-                                "floor" => $d[3]->innerHtml,
-                                "room" => $d[4]->innerHtml,
-                                "description" => $d[5]->innerHtml,
-                            ];
-                            $c["days"][] = $darray;
-                        }
-
-                        $d = new Dom;
-                        $lecturerRow = $dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
-                        try {
-                            $tmp = $d->loadStr($lecturerRow->innerHtml)->find("td");
-                            $lecturers = $tmp[1]->innerHtml;
-                            $c["lecturers"] = strip_tags(str_replace("<br />", ",", str_replace(",", "", $lecturers)));
-                        } catch (\PHPHtmlParser\Exceptions\EmptyCollectionException $ex) {
-                            $c["lecturers"] = "Keine Vortragenden Angegeben oder sie konnten nicht ausgelesen werden.";
-                        }
-                        //grab infos
-                        $detailrows = $dom->loadStr(($dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
-
-                        $infos = $detailrows[count($detailrows) - 1];
-                        $info = $d->loadStr($infos->innerHtml)->find("td")[1];
-                        $c["description"] = strip_tags($info->innerHtml);
-                        $courseArray[] = $c;
                     }
                 }
             }
