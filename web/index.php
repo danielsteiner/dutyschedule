@@ -99,17 +99,17 @@ if (array_key_exists('auth', $_GET)) {
                             $courselink = $a->getAttribute('href');
                             $details_html = (string)$client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
 
-                            $dom = new Dom;
-                            $dom->loadStr($details_html);
-                            $html = $dom->innerHtml;
+                            $course_dom = new Dom;
+                            $course_dom->loadStr($details_html);
+                            $html = $course_dom->innerHtml;
 
                             $d = new Dom;
-                            $daysRow = $dom->find('#ctl00_main_m_DaysRow');
+                            $daysRow = $course_dom->find('#ctl00_main_m_DaysRow');
                             $days = $d->loadStr($daysRow)->find(".MessageTable tr");
                             unset($days[0]);
 
                             foreach ($days as $day) {
-                                $d = $dom->loadStr($day->innerHtml)->find('td');
+                                $d = $course_dom->loadStr($day->innerHtml)->find('td');
                                 $darray = [
                                     "date" => $d[0]->innerHtml,
                                     "from" => explode(" - ", $d[1]->innerHtml)[0],
@@ -123,7 +123,7 @@ if (array_key_exists('auth', $_GET)) {
                             }
 
                             $d = new Dom;
-                            $lecturerRow = $dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
+                            $lecturerRow = $course_dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
                             try {
                                 $tmp = $d->loadStr($lecturerRow->innerHtml)->find("td");
                                 $lecturers = $tmp[1]->innerHtml;
@@ -132,7 +132,7 @@ if (array_key_exists('auth', $_GET)) {
                                 $c["lecturers"] = "Keine Vortragenden Angegeben oder sie konnten nicht ausgelesen werden.";
                             }
                             //grab infos
-                            $detailrows = $dom->loadStr(($dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
+                            $detailrows = $course_dom->loadStr(($course_dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
 
                             $infos = $detailrows[count($detailrows) - 1];
                             $info = $d->loadStr($infos->innerHtml)->find("td")[1];
