@@ -88,6 +88,8 @@ if (array_key_exists('auth', $_GET)) {
                     // die();
                     // if($courseparts[0])
                     if(is_object($courseparts[9])) {
+                        $courseArray = array();
+
                         $course_link = $dom->loadStr($courseparts[9]->innerHtml);
                         $a = null;
                         if ($course_link->hasChildren()) {

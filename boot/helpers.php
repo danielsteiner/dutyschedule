@@ -271,21 +271,24 @@ function parseRDDuty($duty, $title)
 function parseCourse($course)
 {
     $courses = "";
-    foreach ($course["days"] as $day) {
-        $duty = [
-            'date' => $day["date"],
-            'time' => [
-                'start' => Carbon::parse($day["date"] . " " . $day["from"]),
-                'end' => Carbon::parse($day["date"] . " " . $day["to"])
-            ]
-        ];
+    if ($course["days"])
+    {
+        foreach ($course["days"] as $day) {
+            $duty = [
+                'date' => $day["date"],
+                'time' => [
+                    'start' => Carbon::parse($day["date"] . " " . $day["from"]),
+                    'end' => Carbon::parse($day["date"] . " " . $day["to"])
+                ]
+            ];
 
-        $duty['location'] = $day["location"] . ", " . $day["room"] . " " . $day["floor"];
-        $duty['hash'] = generateHash($course["title"], $day["date"], $day["from"] . "-" . $day["to"]);
-        $duty['title'] = $course["title"];
-        $duty['status'] = "CONFIRMED";
-        $duty['description'] = str_replace("\n", "<br>", $course["lecturers"] . " " . $day["location"] . ", " . $day["room"] . " " . $day["floor"] . "    " . $course["description"]);
-        $courses .= makeVEVENT($duty);
+            $duty['location'] = $day["location"] . ", " . $day["room"] . " " . $day["floor"];
+            $duty['hash'] = generateHash($course["title"], $day["date"], $day["from"] . "-" . $day["to"]);
+            $duty['title'] = $course["title"];
+            $duty['status'] = "CONFIRMED";
+            $duty['description'] = str_replace("\n", "<br>", $course["lecturers"] . " " . $day["location"] . ", " . $day["room"] . " " . $day["floor"] . "    " . $course["description"]);
+            $courses .= makeVEVENT($duty);
+        }
     }
     return $courses;
 }
