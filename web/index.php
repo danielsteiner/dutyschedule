@@ -78,7 +78,7 @@ if (array_key_exists('auth', $_GET)) {
             
             $courses = $courseTable->find('tr');
             $courseArray = [];
-            $ca = []; 
+
             foreach ($courses as $k => $course) {
                 if (strpos($course, "MessageHeaderCenter") === false && strpos($course, "MessageBodySeperator") === false) {
                     $courseparts = $dom->loadStr($course)->find('td');
@@ -150,7 +150,6 @@ if (array_key_exists('auth', $_GET)) {
                     }
                 }
             }
-            dd($courseArray);
 
             $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
