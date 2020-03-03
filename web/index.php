@@ -55,10 +55,10 @@ if (array_key_exists('auth', $_GET)) {
                 "__KeyPostfix" => $keypostfix,
                 "__VIEWSTATE" => "",
                 "__EVENTVALIDATION" => $eventvalidation,
-                // "ctl00\$main\$m_From\$m_Textbox" => date("d.m.Y", strtotime("-2 years", strtotime("first day of january"))),
-                "ctl00\$main\$m_From\$m_Textbox" => "01.01.1970",
-                // "ctl00\$main\$m_Until\$m_Textbox" => date("d.m.Y", strtotime("+2 years", strtotime("last day of december"))),
-                "ctl00\$main\$m_Until\$m_Textbox" => "31.12.2030",
+                "ctl00\$main\$m_From\$m_Textbox" => date("d.m.Y", strtotime("-2 years", strtotime("first day of january"))),
+                // "ctl00\$main\$m_From\$m_Textbox" => "01.01.1970",
+                "ctl00\$main\$m_Until\$m_Textbox" => date("d.m.Y", strtotime("+2 years", strtotime("last day of december"))),
+                // "ctl00\$main\$m_Until\$m_Textbox" => "31.12.2030",
                 "ctl00\$main\$m_CourseName" => "",
                 "ctl00\$main\$m_SortOrder" => "Kursdatum",
                 // "ctl00\$main\$m_Options\$0" => "on",
@@ -67,10 +67,7 @@ if (array_key_exists('auth', $_GET)) {
                 "ctl00\$main\$m_Options\$6" => "on",
                 "ctl00\$main\$m_Options\$8" => "on"
             ];
-            // echo date("d.m.Y", strtotime("-2 years", strtotime("first day of january")));
-            // echo "<br>";
-            // echo date("d.m.Y", strtotime("+2 years", strtotime("last day of december")));
-
+            
             $courses_response = $client->request('POST', $course_path . $userid, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
             $courses = (string)$courses_response->getBody();
             $dom->loadStr($courses);
