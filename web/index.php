@@ -10,6 +10,7 @@ $client = new GuzzleHttp\Client([
 ]);
 $jar = new \GuzzleHttp\Cookie\CookieJar;
 if (array_key_exists('auth', $_GET)) {
+    $debug = array_key_exists("debug", $_GET) ? $_GET["debug"] : false;
     $auth = $_GET["auth"];
     if (isset($auth)) {
         $auth = explode(":", base64_decode($auth));
@@ -54,22 +55,30 @@ if (array_key_exists('auth', $_GET)) {
                 "__KeyPostfix" => $keypostfix,
                 "__VIEWSTATE" => "",
                 "__EVENTVALIDATION" => $eventvalidation,
-                "ctl00\$main\$m_From\$m_Textbox" => date("d.m.Y", strtotime("-2 years", strtotime("first day of january"))),
-                "ctl00\$main\$m_Until\$m_Textbox" => date("d.m.Y", strtotime("+2 years", strtotime("last day of december"))),
+                // "ctl00\$main\$m_From\$m_Textbox" => date("d.m.Y", strtotime("-2 years", strtotime("first day of january"))),
+                "ctl00\$main\$m_From\$m_Textbox" => "01.01.1970",
+                // "ctl00\$main\$m_Until\$m_Textbox" => date("d.m.Y", strtotime("+2 years", strtotime("last day of december"))),
+                "ctl00\$main\$m_Until\$m_Textbox" => "31.12.2030",
                 "ctl00\$main\$m_CourseName" => "",
                 "ctl00\$main\$m_SortOrder" => "Kursdatum",
-                "ctl00\$main\$m_Options\$0" => "on",
+                // "ctl00\$main\$m_Options\$0" => "on",
+                "ctl00\$main\$m_Options\$3" => "on",
                 "ctl00\$main\$m_Options\$5" => "on",
-                "ctl00\$main\$m_Options\$6" => "on"
+                "ctl00\$main\$m_Options\$6" => "on",
+                "ctl00\$main\$m_Options\$8" => "on"
             ];
+            // echo date("d.m.Y", strtotime("-2 years", strtotime("first day of january")));
+            // echo "<br>";
+            // echo date("d.m.Y", strtotime("+2 years", strtotime("last day of december")));
 
             $courses_response = $client->request('POST', $course_path . $userid, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
             $courses = (string)$courses_response->getBody();
             $dom->loadStr($courses);
             $courseTable = $dom->loadStr($dom->find('#ctl00_main_m_CourseList__CourseTable'));
+            
             $courses = $courseTable->find('tr');
             $courseArray = [];
-
+            $ca = []; 
             foreach ($courses as $k => $course) {
                 if (strpos($course, "MessageHeaderCenter") === false && strpos($course, "MessageBodySeperator") === false) {
                     $courseparts = $dom->loadStr($course)->find('td');
@@ -84,9 +93,7 @@ if (array_key_exists('auth', $_GET)) {
                         "qualification" => strip_tags($courseparts[7]),
                         "days" => []
                     ];
-                    // dump($courseparts);
-                    // die();
-                    // if($courseparts[0])
+                    
                     if(is_object($courseparts[9])) {
                         $courseArray = array();
 
@@ -95,7 +102,6 @@ if (array_key_exists('auth', $_GET)) {
                         if ($course_link->hasChildren()) {
                             $a = $course_link->find('a');
                         }
-
                         if (is_object($a))
                         {
                             $courselink = $a->getAttribute('href');
@@ -123,7 +129,6 @@ if (array_key_exists('auth', $_GET)) {
                                 ];
                                 $c["days"][] = $darray;
                             }
-
                             $d = new Dom;
                             $lecturerRow = $course_dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
                             try {
@@ -135,15 +140,17 @@ if (array_key_exists('auth', $_GET)) {
                             }
                             //grab infos
                             $detailrows = $course_dom->loadStr(($course_dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
-
+                            
                             $infos = $detailrows[count($detailrows) - 1];
                             $info = $d->loadStr($infos->innerHtml)->find("td")[1];
                             $c["description"] = strip_tags($info->innerHtml);
-                            $courseArray[] = $c;
+                            array_push($GLOBALS["courseArray"], $c);
+                            // $courseArray[] = $c;
                         }
                     }
                 }
             }
+            dd($courseArray);
 
             $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
@@ -215,11 +222,12 @@ if (array_key_exists('auth', $_GET)) {
             foreach (preg_split("/((\r?\n)|(\r\n?))/", $vcal) as $line) {
                 $fixedVcal .= splitLine($line);
             }
+            if(!$GLOBALS["debug"]) {
+                header('Content-Type: text/calendar; charset=utf-8');
+                header('Content-Disposition: attachment; filename=dutyschedule.ics');
 
-            header('Content-Type: text/calendar; charset=utf-8');
-            header('Content-Disposition: attachment; filename=dutyschedule.ics');
-
-            echo $fixedVcal;
+                echo $fixedVcal;
+            }
             die();
         } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {
             print_r($rex);
