@@ -1,6 +1,7 @@
 composer.phar
 /vendor/
 .env
+.secrets
 /logs/*
 .idea/*
 .code/*
