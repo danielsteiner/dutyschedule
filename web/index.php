@@ -22,7 +22,6 @@ if(array_key_exists("end", $_GET)){
 }
 
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
-    // dd(array_key_exists("auth", $_GET))
     if (array_key_exists("auth", $_GET)) {
         $cipher = "aes-128-ctr";
         
@@ -31,6 +30,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
             $ivlen = openssl_cipher_iv_length($cipher);
             $iv = openssl_random_pseudo_bytes($ivlen);
             $decode = base64_decode($_GET["auth"]);
+            
             if(strlen($decode) < 50) {
                 $old_auth = true; 
                 $a = explode(":", $decode);
@@ -49,7 +49,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                     0, 
                     $iv
                 );
-                // dd($auth);
                 $auth = json_decode($auth, true);
             }
             if(array_key_exists("is_lba", $auth)){
