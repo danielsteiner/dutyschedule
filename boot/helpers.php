@@ -918,21 +918,30 @@ function parseLocation($title, $location)
     if (stripos($title, "KTW") !== false) {
         //let's assume, this is a KTW duty. This means possible locations are BVS, VS, Nord, West, Nodo.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
-            $loc = $locations["Nodo"];
+            Location::whereShortlabel("Nodo")->first()->toArray();
         } else {
-            $loc = $locations[ucfirst($location)];
+            Location::whereShortlabel(ucfirst($location))->first()->toArray();
         }
     } else if (stripos($title, "RK") !== false) {
         //let's assume, this is a RTW duty. This means possible locations are Nodo, Arsenal and Penzing.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
-            $loc = $locations["Nodo"];
+            Location::whereShortlabel("Nodo")->first()->toArray();
         } else if (strtolower($location) == "west") {
-            $loc = $locations["Penzing"];
+            Location::whereShortlabel("Penzing")->first()->toArray();
         } else if (strtolower($location) == "vs") {
-            $loc = $locations["Arsenal"];
+            Location::whereShortlabel("Arsenal")->first()->toArray();
         }
-    } else if (stripos($title, "Journal") !== false || stripos($title, "ÄFD-Calltaker") !== false) {
-        $loc = $locations["Leitstelle WRK"];
+    } else if (stripos($title, "Journal") !== false) {
+        Location::whereShortlabel("Leitstelle WRK")->first()->toArray();
+    } else if (stripos($title, "ÄFD-Calltaker") !== false) {
+        $loc = Location::whereShortlabel("Leitstelle ÄFD")->first()->toArray();
+    } else {
+        $loc = Location::whereShortlabel($title)->first();
+        dump($title);
+        if(!is_null($loc)) {
+            dd($title);
+            $loc = $loc->toArray();
+        }
     }
     return $loc;
 }
@@ -1173,7 +1182,6 @@ function createRange($start, $end, $format = 'Y-m-d') {
     $start  = new DateTime($start);
     $end    = new DateTime($end);
     $invert = $start > $end;
-
     $dates = array();
     $dates[] = $start->format($format);
     while ($start != $end) {
@@ -1182,7 +1190,6 @@ function createRange($start, $end, $format = 'Y-m-d') {
     }
     return $dates;
 }
-
 
 function getFZGTagebuchLink($vehicle) {
     if($vehicle === "000") {
