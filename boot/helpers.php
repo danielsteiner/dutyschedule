@@ -937,7 +937,6 @@ function parseLocation($title, $location)
         $loc = Location::whereShortlabel("Leitstelle ÄFD")->first()->toArray();
     } else {
         $loc = Location::whereShortlabel($title)->first();
-        dump($title);
         if(!is_null($loc)) {
             dd($title);
             $loc = $loc->toArray();
