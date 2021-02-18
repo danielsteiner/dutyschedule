@@ -608,11 +608,11 @@ try {
         }
     }
     $log->info("Request for " . $username." has ".count($events)." Events");
+    healthcheck($username);
     if (!$GLOBALS["debug"]) {
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: attachment; filename=dienstplan_'.str_replace(".", "", $GLOBALS["username"]).'.ics');
     }
-    healthcheck($username);
     echo makeICalendar($events, $name, $dateStart, $dateEnd);
     die();
 } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {

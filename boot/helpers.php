@@ -1249,22 +1249,34 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089299', 
             'radioid' => '2-41/301', 
             'type' => 'Mercedes Benz Sprinter, RTW'
-         ],
-         '006' => [
+        ],
+        
+        '006' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130102334',
             'radioid' => '2-41/006',
-            'type' => 'VW T5 Hochdach, ausrangiert',
-        ], 
-        '025' => [
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089319',
-            'radioid' => '2-41/025',
-            'type' => 'VW T5 Mittelhochdach, ausrangiert',
+            'type' => 'VW T6 Hochdach',
         ], 
         '007' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130102340',
             'radioid' => '2-41/007',
-            'type' => 'VW T5 Hochdach',
+            'type' => 'VW T6 Hochdach',
         ], 
+        '025' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089319',
+            'radioid' => '2-41/025',
+            'type' => 'VW T6 Hochdach',
+        ], 
+        '027' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=168788438',
+            'radioid' => '2-41/027',
+            'type' => 'VW T6 Hochdach',
+        ], 
+        '040' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=168788449',
+            'radioid' => '2-41/040',
+            'type' => 'VW T6 Hochdach',
+        ], 
+
         '010' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089107',
             'radioid' => '2-41/010',
@@ -1660,6 +1672,10 @@ function strpos_arr($haystack, $needle) {
 function healthcheck($username) {
     $user = User::whereUsername($username)->first();
     if(!is_null($user)) {
-        file_get_contents("https://servicehealth.danielsteiner.net/ping/".$user->healthcheckuuid);        
+        try{
+            file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
+        } catch(Exception $ex) {
+            $GLOBALS["eventlog"]->error($ex);
+        }
     }
 }
