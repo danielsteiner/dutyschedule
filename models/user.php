@@ -1,21 +1,21 @@
 <?php
 namespace Models;
 use Illuminate\Database\Eloquent\Model;
-class Logs extends Model
+class User extends Model
 {
    /**
     * The database table used by the model.
     *
     * @var string
     */
-    protected $table = "logs";
+    protected $table = "users";
    /**
     * The attributes that are mass assignable.
     *
     * @var array
     */
     protected $fillable = [
-        'key', 'html', 'vevent'
+        'username', 'healthcheckuuid'
     ];
 
 }

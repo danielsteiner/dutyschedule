@@ -6,7 +6,7 @@
         "paquettg/php-html-parser": "^2.0",
         "nesbot/carbon": "^2.21",
         "monolog/monolog": "^1.24",
-        "illuminate/database": "^5.8",
+        "illuminate/database": "^6.20",
         "filp/whoops": "^2.4"
     },
     "require-dev": {

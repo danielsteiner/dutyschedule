@@ -1,21 +1,20 @@
 <?php
 namespace Models;
 use Illuminate\Database\Eloquent\Model;
-class Logs extends Model
+class Location extends Model
 {
    /**
     * The database table used by the model.
     *
     * @var string
     */
-    protected $table = "logs";
+    protected $table = "locations";
    /**
     * The attributes that are mass assignable.
     *
     * @var array
     */
     protected $fillable = [
-        'key', 'html', 'vevent'
+        'label', 'address', 'lat', 'lon'
     ];
-
 }
