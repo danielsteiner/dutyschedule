@@ -4,6 +4,11 @@ require "../boot/bootstrap.php";
 if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST)) {
     $username = $_POST["username"];
     $password = $_POST["password"];
+    if(!checkCredentials($username, $password)) {
+        header('Location: login.php');
+        die();
+    }
+
     if(array_key_exists("is_lba", $_POST)){
         $auth = [
             "username" => $username,
@@ -12,6 +17,10 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
             "kufer_username" => $_POST["kufer_username"],
             "kufer_password" => $_POST["kufer_password"]
         ];
+        if(!checkKuferCredentials($username, $password)) {
+            header('Location: login.php');
+            die();
+        }
     } else {
         $auth = [
             "username" => $username,

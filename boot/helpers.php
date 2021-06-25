@@ -14,8 +14,7 @@ use PHPHtmlParser\Exceptions\EmptyCollectionException;
 
 $i = 0;
 
-function parseAmb($row)
-{
+function parseAmb($row) {
     $elem = $row->find('td');
     if (count($elem) == 10) {
         $day = $elem[5]->innerHtml;
@@ -62,8 +61,7 @@ function parseAmb($row)
     return $duty;
 }
 
-function parseRDDuty($duty, $title)
-{
+function parseRDDuty($duty, $title) {
     $fixed = false;
 
     if (stripos($title, "fixiert") !== false) {
@@ -277,8 +275,7 @@ function parseRDDuty($duty, $title)
     return $duty;
 }
 
-function parseKufer($event) 
-{
+function parseKufer($event) {
     $events = []; 
     if($event["date"]["start_date"] !== $event["date"]["end_date"]) {
         //multiday;
@@ -332,8 +329,7 @@ function parseKufer($event)
     return $events;
 }
 
-function parseCourse($course)
-{
+function parseCourse($course) {
     $courses = [];
     if ($course["days"]) {
         foreach ($course["days"] as $day) {
@@ -412,8 +408,7 @@ function parseCourse($course)
     return $courses;
 }
 
-function parseTitle($title, $location, $remark)
-{
+function parseTitle($title, $location, $remark) {
     $titleparts = explode(" ", $title);
     $status = ($titleparts[count($titleparts) - 1] === "geplant" ? "TENTATIVE" : "CONFIRMED");
     unset($titleparts[count($titleparts) - 1]);
@@ -423,8 +418,7 @@ function parseTitle($title, $location, $remark)
     return ["title" => $fancyresult['title'], "status" => $status, 'teamlabels' => $fancyresult['teamlabels']];
 }
 
-function getFancyTitle($title, $location, $remark)
-{
+function getFancyTitle($title, $location, $remark) {
     $fancytitle = "";
     $teamlabels = "";
     switch ($title) {
@@ -547,8 +541,7 @@ function getFancyTitle($title, $location, $remark)
     return ["title" => $fancytitle, "teamlabels" => $teamlabels];
 }
 
-function generateTeamList($team, $teamlabels)
-{
+function generateTeamList($team, $teamlabels) {
     $teamlist = [];
     foreach ($team as $i => $member) {
         if (!is_null($team[$i])) {
@@ -558,8 +551,7 @@ function generateTeamList($team, $teamlabels)
     return $teamlist;
 }
 
-function generateDescription($team, $remark, $fahrzeug = null)
-{
+function generateDescription($team, $remark, $fahrzeug = null) {
     $eventDescription = "";
 
     if (!is_null($fahrzeug)) {
@@ -595,8 +587,7 @@ function generateDescription($team, $remark, $fahrzeug = null)
     return $eventDescription;
 }
 
-function splitLine($text)
-{
+function splitLine($text) {
     if (mb_strlen($text) >= 75) {
         $text = wordwrap($text, 75, "\r\n", true);
     } else {
@@ -609,8 +600,7 @@ function splitLine($text)
     return $text . "\r\n";
 }
 
-function getUser($member)
-{
+function getUser($member) {
     if ($member != null) {
         if (strpos($member, ">") !== false) {
             $empid = explode('\'', $member)[1];
@@ -630,8 +620,7 @@ function getUser($member)
     }
 }
 
-function getFullUser($member, $type = "duty")
-{
+function getFullUser($member, $type = "duty") {
     if ($member != null || !empty(trim($member))) {
         $d = new Dom;
         try {
@@ -684,8 +673,7 @@ function getFullUser($member, $type = "duty")
     return null;
 }
 
-function getAmbDetails($url)
-{
+function getAmbDetails($url) {
     $client = new GuzzleHttp\Client();
     $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $dom = new Dom;
@@ -765,8 +753,7 @@ function getAmbDetails($url)
     return ["description" => $amb_description, "team" => $team, "location" => $locationResult];
 }
 
-function getUserFromAmb($entry)
-{
+function getUserFromAmb($entry) {
     $dom = new Dom;
     $parts = $dom->loadStr($entry[0]->innerHtml)->find('span');
     $user = [];
@@ -774,8 +761,7 @@ function getUserFromAmb($entry)
     return $user;
 }
 
-function replaceHex($string)
-{
+function replaceHex($string) {
     $string = str_replace("&#162;", "¢", $string);
     $string = str_replace("&#163;", "£", $string);
     $string = str_replace("&#164;", "€", $string);
@@ -856,8 +842,7 @@ function replaceHex($string)
     return $string;
 }
 
-function parseLocation($title, $location)
-{
+function parseLocation($title, $location) {
     $locations = [
         "BVS" => [
             "label" => "Wiener Rotes Kreuz Bezirkstelle Bertha Van Suttner",
@@ -945,8 +930,7 @@ function parseLocation($title, $location)
     return $loc;
 }
 
-function parseDate($date, $timestring)
-{
+function parseDate($date, $timestring) {
     $timeparts = explode("-", $timestring);
     $start = trim($timeparts[0]);
     $end = trim($timeparts[1]);
@@ -980,8 +964,7 @@ function parseDate($date, $timestring)
     return ["start" => $starttime, "end" => $endtime];
 }
 
-function generateHash($title, $date, $timestring)
-{
+function generateHash($title, $date, $timestring) {
     $GLOBALS["i"]++;
     if (gettype($date) == "array") {
         return substr(md5($GLOBALS["i"] . " " . $title . " " . $date['start']->toDateString() . " " . $timestring), 0, 10);
@@ -990,8 +973,7 @@ function generateHash($title, $date, $timestring)
     }
 }
 
-function makeICalendar($events, $name, $dateStart, $dateEnd)
-{
+function makeICalendar($events, $name, $dateStart, $dateEnd) {
     $url = array_key_exists("auth", $_GET) ? env('SCRIPT_URL') . "/?auth=" . $_GET["auth"] : env('SCRIPT_URL');
 
     $vcal = "BEGIN:VCALENDAR\r\n";
@@ -1047,8 +1029,7 @@ function makeICalendar($events, $name, $dateStart, $dateEnd)
     return $foldedVCal;
 }
 
-function makeVEVENT($event)
-{
+function makeVEVENT($event) {
 
     $description = $event["description"];
     $description = replaceHex($description);
@@ -1137,8 +1118,7 @@ function makeVEVENT($event)
     return $vevent;
 }
 
-function ical_split($value)
-{
+function ical_split($value) {
     $value = trim($value);
     $value = strip_tags($value);
     $value = preg_replace('/\n+/', ' ', $value);
@@ -1677,5 +1657,52 @@ function healthcheck($username) {
         } catch(Exception $ex) {
             $GLOBALS["eventlog"]->error($ex);
         }
+    }
+}
+
+function checkCredentials($username, $password) {
+    $client = new GuzzleHttp\Client([
+        'base_uri' => env("DATASOURCE_URL"),
+        "verify" => false,
+    ]);
+    $jar = new \GuzzleHttp\Cookie\CookieJar;
+    try {
+        $authRequest = $client->request('GET', '/' , ['auth' => [$username, $password], 'allow_redirects' => true, 'cookies' => $jar]);
+        $authResponseBody = (string)$authRequest->getBody();
+        $authResponseCode = $authRequest->getStatusCode();
+        if($authResponseCode===200) {
+            return true; 
+        }
+    } catch (GuzzleHttp\Exception\ClientException $cex) {
+        // $authResponseCode = $auth->response->getStatusCode();
+        if(strpos($cex->getMessage(), "401 Unauthorized") !== false) {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed due to invalid or missing credentials.");
+        } else {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed. ".$cex->getMessage());
+        }
+        return false;
+    }
+}
+
+function checkKuferCredentials($username, $password) {
+    $client = new GuzzleHttp\Client([
+        'base_uri' => env("KUFER_URL"),
+        "verify" => false,
+    ]);
+    $jar = new \GuzzleHttp\Cookie\CookieJar;
+    try {
+        $authRequest = $client->request('GET', '/' , ['auth' => [$username, $password], 'allow_redirects' => true, 'cookies' => $jar]);
+        $authResponseCode = $authRequest->getStatusCode();
+        if($authResponseCode===200) {
+            return true; 
+        }
+    } catch (GuzzleHttp\Exception\ClientException $cex) {
+        // $authResponseCode = $auth->response->getStatusCode();
+        if(strpos($cex->getMessage(), "401 Unauthorized") !== false) {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed due to invalid or missing credentials.");
+        } else {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed. ".$cex->getMessage());
+        }
+        return false;
     }
 }

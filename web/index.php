@@ -12,6 +12,8 @@ $client = new GuzzleHttp\Client([
 ]);
 $jar = new \GuzzleHttp\Cookie\CookieJar;
 $is_lba = false; 
+
+
 $dateStart = date("d.m.Y", strtotime("-1 years", strtotime("first day of january")));
 $dateEnd = date("d.m.Y", strtotime("+1 years", strtotime("last day of december")));
 if(array_key_exists("start", $_GET)){
@@ -25,8 +27,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     if (array_key_exists("auth", $_GET)) {
         $cipher = "aes-128-ctr";
         
-        if (in_array($cipher, openssl_get_cipher_methods()))
-        {
+        if (in_array($cipher, openssl_get_cipher_methods())) {
             $ivlen = openssl_cipher_iv_length($cipher);
             $iv = openssl_random_pseudo_bytes($ivlen);
             $decode = base64_decode($_GET["auth"]);
@@ -60,10 +61,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
             $password = $auth["password"];
         }
     } else {
-        // header('WWW-Authenticate: Basic realm="My Realm"');
-        // header('HTTP/1.0 401 Unauthorized');
-        // echo "Username oder Passwort sind nicht angegeben, bitte melden Sie sich erst an";
-        // exit;
+        header('WWW-Authenticate: Basic realm="WRK Dienstplanexport"');
+        header('HTTP/1.0 401 Unauthorized');
+        header('Location: login.php');
+        exit;
     }
 } else {
     $username = $_SERVER['PHP_AUTH_USER'];
@@ -74,10 +75,15 @@ if (!isset($username) && !isset($password)) {
     header('Location: login.php');
     die();
 }
-
 $GLOBALS["requestingUser"] = $username;
 $GLOBALS["eventlog"] = new Logger('wrk-dutyschedule-events');
 $GLOBALS["eventlog"]->pushHandler(new StreamHandler(__DIR__."/../logs/events_".$GLOBALS["requestingUser"]."_".date('y-m-d').".log", Logger::INFO));
+
+if(!checkCredentials($username, $password)) {
+    header('Location: login.php');
+    die();
+}
+
 
 $debug = env("APP_DEBUG");
 
@@ -505,7 +511,6 @@ try {
         }
     }
     if($is_lba) {
-        $log->info("Fetching courses from KUFER");
         try {
             $auth_request = $client->request('GET', env("KUFER_URL"), ['allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
 
