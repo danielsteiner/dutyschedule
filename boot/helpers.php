@@ -1267,6 +1267,26 @@ function getFZGTagebuchLink($vehicle) {
             'radioid' => '2-41/012',
             'type' => 'VW T5/6 Mittelhochdach',
         ], 
+        '017' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041505',
+            'radioid' => '2-41/012',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
+        '018' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041535',
+            'radioid' => '2-41/012',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
+        '019' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041661',
+            'radioid' => '2-41/012',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
+        '020' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041665',
+            'radioid' => '2-41/012',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
         '021' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089307',
             'radioid' => '2-41/021',
@@ -1535,7 +1555,7 @@ function getFZGTagebuchLink($vehicle) {
         '091' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089490',
             'radioid' => '2-41/091',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '092' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089494',
@@ -1651,12 +1671,18 @@ function strpos_arr($haystack, $needle) {
 
 function healthcheck($username) {
     $user = User::whereUsername($username)->first();
-    if(!is_null($user)) {
-        try{
-            file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
-        } catch(Exception $ex) {
-            $GLOBALS["eventlog"]->error($ex);
-        }
+    if(is_null($user)) {
+        $healthCheckUUID = createCheck($username);
+        $user = User::whereUsername($username)->first();
+        $user->username = $username; 
+        $user->healthcheckuuid = $healthCheckUUID; 
+        $user->save();
+        $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
+    }
+    try{
+        file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
+    } catch(Exception $ex) {
+        $GLOBALS["eventlog"]->error($ex);
     }
 }
 
@@ -1705,4 +1731,20 @@ function checkKuferCredentials($username, $password) {
         }
         return false;
     }
+}
+
+function createCheck($username) {
+    $g = new GuzzleHttp\Client();
+    $data = [
+        'api_key' => env('SERVICEHEALTH_KEY'),
+        "name" => "Kalender von ".$username,
+        "timeout" => 21600,
+        "grace" => 3600,
+    ];
+    $healthcheckCreateResponse = $g->request('POST', 'https://servicehealth.danielsteiner.net/api/v1/checks/', ['json' => $data]);
+    
+    $response = json_decode((string)$healthcheckCreateResponse->getBody());
+    $parts = explode("/", $response->ping_url);
+    $uuid = $parts[count($parts)-1];
+    return $uuid;
 }

@@ -84,7 +84,6 @@ if(!checkCredentials($username, $password)) {
     die();
 }
 
-
 $debug = env("APP_DEBUG");
 
 $log->info("Request for " . $username." started");
