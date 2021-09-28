@@ -514,6 +514,10 @@ function getFancyTitle($title, $location, $remark) {
         $fancytitle = "NKTW RKK4";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
+    if (stripos($remark, "RKK5") !== false) {
+        $fancytitle = "NKTW RKK5";
+        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
+    }
     if (stripos($remark, "Notfall-KTW RKK 1") !== false) {
         $fancytitle = "NKTW RKK1";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
@@ -528,6 +532,10 @@ function getFancyTitle($title, $location, $remark) {
     }
     if (stripos($remark, "Notfall-KTW RKK 4") !== false) {
         $fancytitle = "NKTW RKK4";
+        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
+    }
+    if (stripos($remark, "Notfall-KTW RKK 5") !== false) {
+        $fancytitle = "NKTW RKK5";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
     if (stripos($remark, "ITW") !== false) {
