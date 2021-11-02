@@ -1277,22 +1277,22 @@ function getFZGTagebuchLink($vehicle) {
         ], 
         '017' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041505',
-            'radioid' => '2-41/012',
+            'radioid' => '2-41/017',
             'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '018' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041535',
-            'radioid' => '2-41/012',
+            'radioid' => '2-41/018',
             'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '019' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041661',
-            'radioid' => '2-41/012',
+            'radioid' => '2-41/019',
             'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '020' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041665',
-            'radioid' => '2-41/012',
+            'radioid' => '2-41/020',
             'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '021' => [
