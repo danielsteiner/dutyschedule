@@ -14,8 +14,7 @@ use PHPHtmlParser\Exceptions\EmptyCollectionException;
 
 $i = 0;
 
-function parseAmb($row)
-{
+function parseAmb($row) {
     $elem = $row->find('td');
     if (count($elem) == 10) {
         $day = $elem[5]->innerHtml;
@@ -62,8 +61,7 @@ function parseAmb($row)
     return $duty;
 }
 
-function parseRDDuty($duty, $title)
-{
+function parseRDDuty($duty, $title) {
     $fixed = false;
 
     if (stripos($title, "fixiert") !== false) {
@@ -277,8 +275,7 @@ function parseRDDuty($duty, $title)
     return $duty;
 }
 
-function parseKufer($event) 
-{
+function parseKufer($event) {
     $events = []; 
     if($event["date"]["start_date"] !== $event["date"]["end_date"]) {
         //multiday;
@@ -332,8 +329,7 @@ function parseKufer($event)
     return $events;
 }
 
-function parseCourse($course)
-{
+function parseCourse($course) {
     $courses = [];
     if ($course["days"]) {
         foreach ($course["days"] as $day) {
@@ -412,8 +408,7 @@ function parseCourse($course)
     return $courses;
 }
 
-function parseTitle($title, $location, $remark)
-{
+function parseTitle($title, $location, $remark) {
     $titleparts = explode(" ", $title);
     $status = ($titleparts[count($titleparts) - 1] === "geplant" ? "TENTATIVE" : "CONFIRMED");
     unset($titleparts[count($titleparts) - 1]);
@@ -423,8 +418,7 @@ function parseTitle($title, $location, $remark)
     return ["title" => $fancyresult['title'], "status" => $status, 'teamlabels' => $fancyresult['teamlabels']];
 }
 
-function getFancyTitle($title, $location, $remark)
-{
+function getFancyTitle($title, $location, $remark) {
     $fancytitle = "";
     $teamlabels = "";
     switch ($title) {
@@ -520,6 +514,10 @@ function getFancyTitle($title, $location, $remark)
         $fancytitle = "NKTW RKK4";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
+    if (stripos($remark, "RKK5") !== false) {
+        $fancytitle = "NKTW RKK5";
+        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
+    }
     if (stripos($remark, "Notfall-KTW RKK 1") !== false) {
         $fancytitle = "NKTW RKK1";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
@@ -536,6 +534,10 @@ function getFancyTitle($title, $location, $remark)
         $fancytitle = "NKTW RKK4";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
+    if (stripos($remark, "Notfall-KTW RKK 5") !== false) {
+        $fancytitle = "NKTW RKK5";
+        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
+    }
     if (stripos($remark, "ITW") !== false) {
         $fancytitle = "NAW/ITW RKL-3";
         $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
@@ -547,8 +549,7 @@ function getFancyTitle($title, $location, $remark)
     return ["title" => $fancytitle, "teamlabels" => $teamlabels];
 }
 
-function generateTeamList($team, $teamlabels)
-{
+function generateTeamList($team, $teamlabels) {
     $teamlist = [];
     foreach ($team as $i => $member) {
         if (!is_null($team[$i])) {
@@ -558,8 +559,7 @@ function generateTeamList($team, $teamlabels)
     return $teamlist;
 }
 
-function generateDescription($team, $remark, $fahrzeug = null)
-{
+function generateDescription($team, $remark, $fahrzeug = null) {
     $eventDescription = "";
 
     if (!is_null($fahrzeug)) {
@@ -595,8 +595,7 @@ function generateDescription($team, $remark, $fahrzeug = null)
     return $eventDescription;
 }
 
-function splitLine($text)
-{
+function splitLine($text) {
     if (mb_strlen($text) >= 75) {
         $text = wordwrap($text, 75, "\r\n", true);
     } else {
@@ -609,8 +608,7 @@ function splitLine($text)
     return $text . "\r\n";
 }
 
-function getUser($member)
-{
+function getUser($member) {
     if ($member != null) {
         if (strpos($member, ">") !== false) {
             $empid = explode('\'', $member)[1];
@@ -630,8 +628,7 @@ function getUser($member)
     }
 }
 
-function getFullUser($member, $type = "duty")
-{
+function getFullUser($member, $type = "duty") {
     if ($member != null || !empty(trim($member))) {
         $d = new Dom;
         try {
@@ -684,8 +681,7 @@ function getFullUser($member, $type = "duty")
     return null;
 }
 
-function getAmbDetails($url)
-{
+function getAmbDetails($url) {
     $client = new GuzzleHttp\Client();
     $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $dom = new Dom;
@@ -765,8 +761,7 @@ function getAmbDetails($url)
     return ["description" => $amb_description, "team" => $team, "location" => $locationResult];
 }
 
-function getUserFromAmb($entry)
-{
+function getUserFromAmb($entry) {
     $dom = new Dom;
     $parts = $dom->loadStr($entry[0]->innerHtml)->find('span');
     $user = [];
@@ -774,8 +769,7 @@ function getUserFromAmb($entry)
     return $user;
 }
 
-function replaceHex($string)
-{
+function replaceHex($string) {
     $string = str_replace("&#162;", "¢", $string);
     $string = str_replace("&#163;", "£", $string);
     $string = str_replace("&#164;", "€", $string);
@@ -856,8 +850,7 @@ function replaceHex($string)
     return $string;
 }
 
-function parseLocation($title, $location)
-{
+function parseLocation($title, $location) {
     $locations = [
         "BVS" => [
             "label" => "Wiener Rotes Kreuz Bezirkstelle Bertha Van Suttner",
@@ -918,27 +911,34 @@ function parseLocation($title, $location)
     if (stripos($title, "KTW") !== false) {
         //let's assume, this is a KTW duty. This means possible locations are BVS, VS, Nord, West, Nodo.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
-            $loc = $locations["Nodo"];
+            Location::whereShortlabel("Nodo")->first()->toArray();
         } else {
-            $loc = $locations[ucfirst($location)];
+            Location::whereShortlabel(ucfirst($location))->first()->toArray();
         }
     } else if (stripos($title, "RK") !== false) {
         //let's assume, this is a RTW duty. This means possible locations are Nodo, Arsenal and Penzing.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
-            $loc = $locations["Nodo"];
+            Location::whereShortlabel("Nodo")->first()->toArray();
         } else if (strtolower($location) == "west") {
-            $loc = $locations["Penzing"];
+            Location::whereShortlabel("Penzing")->first()->toArray();
         } else if (strtolower($location) == "vs") {
-            $loc = $locations["Arsenal"];
+            Location::whereShortlabel("Arsenal")->first()->toArray();
         }
-    } else if (stripos($title, "Journal") !== false || stripos($title, "ÄFD-Calltaker") !== false) {
-        $loc = $locations["Leitstelle WRK"];
+    } else if (stripos($title, "Journal") !== false) {
+        Location::whereShortlabel("Leitstelle WRK")->first()->toArray();
+    } else if (stripos($title, "ÄFD-Calltaker") !== false) {
+        $loc = Location::whereShortlabel("Leitstelle ÄFD")->first()->toArray();
+    } else {
+        $loc = Location::whereShortlabel($title)->first();
+        if(!is_null($loc)) {
+            dd($title);
+            $loc = $loc->toArray();
+        }
     }
     return $loc;
 }
 
-function parseDate($date, $timestring)
-{
+function parseDate($date, $timestring) {
     $timeparts = explode("-", $timestring);
     $start = trim($timeparts[0]);
     $end = trim($timeparts[1]);
@@ -972,8 +972,7 @@ function parseDate($date, $timestring)
     return ["start" => $starttime, "end" => $endtime];
 }
 
-function generateHash($title, $date, $timestring)
-{
+function generateHash($title, $date, $timestring) {
     $GLOBALS["i"]++;
     if (gettype($date) == "array") {
         return substr(md5($GLOBALS["i"] . " " . $title . " " . $date['start']->toDateString() . " " . $timestring), 0, 10);
@@ -982,8 +981,7 @@ function generateHash($title, $date, $timestring)
     }
 }
 
-function makeICalendar($events, $name, $dateStart, $dateEnd)
-{
+function makeICalendar($events, $name, $dateStart, $dateEnd) {
     $url = array_key_exists("auth", $_GET) ? env('SCRIPT_URL') . "/?auth=" . $_GET["auth"] : env('SCRIPT_URL');
 
     $vcal = "BEGIN:VCALENDAR\r\n";
@@ -1039,8 +1037,7 @@ function makeICalendar($events, $name, $dateStart, $dateEnd)
     return $foldedVCal;
 }
 
-function makeVEVENT($event)
-{
+function makeVEVENT($event) {
 
     $description = $event["description"];
     $description = replaceHex($description);
@@ -1129,8 +1126,7 @@ function makeVEVENT($event)
     return $vevent;
 }
 
-function ical_split($value)
-{
+function ical_split($value) {
     $value = trim($value);
     $value = strip_tags($value);
     $value = preg_replace('/\n+/', ' ', $value);
@@ -1173,7 +1169,6 @@ function createRange($start, $end, $format = 'Y-m-d') {
     $start  = new DateTime($start);
     $end    = new DateTime($end);
     $invert = $start > $end;
-
     $dates = array();
     $dates[] = $start->format($format);
     while ($start != $end) {
@@ -1182,7 +1177,6 @@ function createRange($start, $end, $format = 'Y-m-d') {
     }
     return $dates;
 }
-
 
 function getFZGTagebuchLink($vehicle) {
     if($vehicle === "000") {
@@ -1243,22 +1237,34 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089299', 
             'radioid' => '2-41/301', 
             'type' => 'Mercedes Benz Sprinter, RTW'
-         ],
-         '006' => [
+        ],
+        
+        '006' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130102334',
             'radioid' => '2-41/006',
-            'type' => 'VW T5 Hochdach, ausrangiert',
-        ], 
-        '025' => [
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089319',
-            'radioid' => '2-41/025',
-            'type' => 'VW T5 Mittelhochdach, ausrangiert',
+            'type' => 'VW T6 Hochdach',
         ], 
         '007' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130102340',
             'radioid' => '2-41/007',
-            'type' => 'VW T5 Hochdach',
+            'type' => 'VW T6 Hochdach',
         ], 
+        '025' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089319',
+            'radioid' => '2-41/025',
+            'type' => 'VW T6 Hochdach',
+        ], 
+        '027' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=168788438',
+            'radioid' => '2-41/027',
+            'type' => 'VW T6 Hochdach',
+        ], 
+        '040' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=168788449',
+            'radioid' => '2-41/040',
+            'type' => 'VW T6 Hochdach',
+        ], 
+
         '010' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089107',
             'radioid' => '2-41/010',
@@ -1268,6 +1274,26 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089303',
             'radioid' => '2-41/012',
             'type' => 'VW T5/6 Mittelhochdach',
+        ], 
+        '017' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041505',
+            'radioid' => '2-41/017',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
+        '018' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041535',
+            'radioid' => '2-41/018',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
+        '019' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041661',
+            'radioid' => '2-41/019',
+            'type' => 'Mercedes Benz Sprinter, KTW',
+        ], 
+        '020' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041665',
+            'radioid' => '2-41/020',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '021' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089307',
@@ -1537,7 +1563,7 @@ function getFZGTagebuchLink($vehicle) {
         '091' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089490',
             'radioid' => '2-41/091',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '092' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089494',
@@ -1653,7 +1679,80 @@ function strpos_arr($haystack, $needle) {
 
 function healthcheck($username) {
     $user = User::whereUsername($username)->first();
-    if(!is_null($user)) {
-        file_get_contents("https://servicehealth.danielsteiner.net/ping/".$user->healthcheckuuid);        
+    if(is_null($user)) {
+        $healthCheckUUID = createCheck($username);
+        $user = User::whereUsername($username)->first();
+        $user->username = $username; 
+        $user->healthcheckuuid = $healthCheckUUID; 
+        $user->save();
+        $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
     }
+    try{
+        file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
+    } catch(Exception $ex) {
+        $GLOBALS["eventlog"]->error($ex);
+    }
+}
+
+function checkCredentials($username, $password) {
+    $client = new GuzzleHttp\Client([
+        'base_uri' => env("DATASOURCE_URL"),
+        "verify" => false,
+    ]);
+    $jar = new \GuzzleHttp\Cookie\CookieJar;
+    try {
+        $authRequest = $client->request('GET', '/' , ['auth' => [$username, $password], 'allow_redirects' => true, 'cookies' => $jar]);
+        $authResponseBody = (string)$authRequest->getBody();
+        $authResponseCode = $authRequest->getStatusCode();
+        if($authResponseCode===200) {
+            return true; 
+        }
+    } catch (GuzzleHttp\Exception\ClientException $cex) {
+        // $authResponseCode = $auth->response->getStatusCode();
+        if(strpos($cex->getMessage(), "401 Unauthorized") !== false) {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed due to invalid or missing credentials.");
+        } else {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed. ".$cex->getMessage());
+        }
+        return false;
+    }
+}
+
+function checkKuferCredentials($username, $password) {
+    $client = new GuzzleHttp\Client([
+        'base_uri' => env("KUFER_URL"),
+        "verify" => false,
+    ]);
+    $jar = new \GuzzleHttp\Cookie\CookieJar;
+    try {
+        $authRequest = $client->request('GET', '/' , ['auth' => [$username, $password], 'allow_redirects' => true, 'cookies' => $jar]);
+        $authResponseCode = $authRequest->getStatusCode();
+        if($authResponseCode===200) {
+            return true; 
+        }
+    } catch (GuzzleHttp\Exception\ClientException $cex) {
+        // $authResponseCode = $auth->response->getStatusCode();
+        if(strpos($cex->getMessage(), "401 Unauthorized") !== false) {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed due to invalid or missing credentials.");
+        } else {
+            $GLOBALS["eventlog"]->info("Request for ".$username." failed. ".$cex->getMessage());
+        }
+        return false;
+    }
+}
+
+function createCheck($username) {
+    $g = new GuzzleHttp\Client();
+    $data = [
+        'api_key' => env('SERVICEHEALTH_KEY'),
+        "name" => "Kalender von ".$username,
+        "timeout" => 21600,
+        "grace" => 3600,
+    ];
+    $healthcheckCreateResponse = $g->request('POST', 'https://servicehealth.danielsteiner.net/api/v1/checks/', ['json' => $data]);
+    
+    $response = json_decode((string)$healthcheckCreateResponse->getBody());
+    $parts = explode("/", $response->ping_url);
+    $uuid = $parts[count($parts)-1];
+    return $uuid;
 }

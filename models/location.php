@@ -15,6 +15,6 @@ class Location extends Model
     * @var array
     */
     protected $fillable = [
-        'label', 'address', 'lat', 'lon'
+        'shortlabel', 'label', 'address', 'lat', 'lon'
     ];
 }
