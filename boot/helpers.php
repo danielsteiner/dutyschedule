@@ -981,7 +981,7 @@ function generateHash($title, $date, $timestring) {
     }
 }
 
-function makeICalendar($events, $name, $dateStart, $dateEnd) {
+function makeICalendar($events, $name, $dateStart, $dateEnd, $alarms = null) {
     $url = array_key_exists("auth", $_GET) ? env('SCRIPT_URL') . "/?auth=" . $_GET["auth"] : env('SCRIPT_URL');
 
     $vcal = "BEGIN:VCALENDAR\r\n";
@@ -1026,8 +1026,19 @@ function makeICalendar($events, $name, $dateStart, $dateEnd) {
             throw $ex;
         }
     }
+    if($alarms !== null) {
+        foreach($alarms as $alarm) {
+            $vcal .= "BEGIN:VALARM\r\n";
+            $vcal .= "TRIGGER:VALUE=DATE-TIME:19980101T050000Z\r\n";
+            $vcal .= "REPEAT:1\r\n";
+            $vcal .= "DURATION:PT15M\r\n";
+            $vcal .= "ACTION:DISPLAY\r\n";
+            $vcal .= "DESCRIPTION:".$alarm."\r\n";
+            $vcal .= "END:VALARM\r\n";
+        }
+    }
     $vcal .= "END:VCALENDAR";
-
+    
 
     $foldedVCal = "";
     $lines = explode("\r\n", $vcal);

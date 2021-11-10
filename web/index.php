@@ -40,7 +40,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                     "password" => $a[1]
                 ];
             } else {
-
                 $iv = substr($decode, 0, openssl_cipher_iv_length($cipher));
                 $ciphertext = substr($decode, openssl_cipher_iv_length($cipher));
                 $auth = openssl_decrypt(
@@ -84,7 +83,10 @@ if(!checkCredentials($username, $password)) {
     die();
 }
 
-$debug = env("APP_DEBUG");
+$debug = env("APP_DEBUG"); 
+if(array_key_exists("debug", $_GET)) {
+    $debug = true; 
+}
 
 $log->info("Request for " . $username." started");
 
@@ -93,6 +95,7 @@ $header_path = "/Kripo/Header.aspx";
 $niu_today_path = "/Kripo/Today/Today.aspx";
 $statistics_path = "/Kripo/DutyRoster/EmployeeDutyStatistic.aspx?EmployeeNumberID=";
 $course_path = "/Kripo/Kufer/SearchCourse.aspx";
+$planned_duty_path = "/Kripo/DutyRosterNH/DutyRoster.aspx?DutyStage=planned";
 
 try {
     $auth = $client->request('GET', $base_uri, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
@@ -481,7 +484,129 @@ try {
         } catch (PhpHtmlParser\Exceptions\EmptyCollectionException $ecex) {
         }
     }
+
+    if($debug) {
+        $alarms = []; 
+        dump($events);
+        $planned_duties_request = $client->request('GET', $planned_duty_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+        $planned_duties_response = (string)$planned_duties_request->getBody();
+        $relevant_duties = [
+            "RTW RKL-1" => "142ae84d-c2a4-4464-a6ac-60538a28ce98",
+            "RTW RKL-2" => "d42768e6-beb9-40fb-9b5b-93cbc8a9f640",
+            "RTW RKL-3" => "c03d2dd8-7944-4ca0-8043-fe72805b7998",
+            "RTW RKP-1" => "b3145ec5-e1e0-477f-a741-8d0304ad51e9",
+            "RTW RKS-1" => "4c55445e-99f8-4506-8f19-b01769a87686",
+            "KTW" => "582f38da-b68d-4fb8-9547-f83a5bed30a8",
+        ];  
+        $plannedDom = new Dom;
+        $plannedDom->loadStr($planned_duties_response);
+
+        $postData = [
+            "__EVENTTARGET" => "ctl00\$main\$buReload",
+            "__EVENTARGUMENT" => "", 
+            "__VIEWSTATE" => "", 
+            "ctl00\$main\$ccDate\$m_Textbox" => date('d.m.Y'),
+            "ctl00\$main\$ddDivision" => "eb26f543-f88c-445e-a1c3-52e898a999d2",
+            "ctl00\$main\$tbDays" => "7",
+            "ctl00\$main\$ddWeekEvenOdd" => "",
+            "ctl00\$main\$ddWeekday" => "",
+            "ctl00\$main\$ddProposeEmployeeNumber" => "",
+            "dienstTyp" => "alle",
+            "permanenzBS" => "-",
+            "nlh_day_filter[]" => "mo",
+            "nlh_day_filter[]" => "di",
+            "nlh_day_filter[]" => "mi",
+            "nlh_day_filter[]" => "do",
+            "nlh_day_filter[]" => "fr",
+            "nlh_day_filter[]" => "sa",
+            "nlh_day_filter[]" => "so",
+        ];
+        $eventvalidation = $plannedDom->find('#__EVENTVALIDATION')->getAttribute("value");
+        $keypostfix = $plannedDom->find('#__KeyPostfix')->getAttribute("value");
+        $postData['__KeyPostfix'] = $keypostfix;
+        $postData['__EVENTVALIDATION'] = $eventvalidation;        
+
+        $plannedDuties = [];
+        foreach($relevant_duties as $dutyname => $dutytype) {
+            $postData["ctl00\$main\$ddDutyType"] = $dutytype; 
+
+            $planned_duties_request = $client->request('POST', $planned_duty_path, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+            $planned_duties_response = (string)$planned_duties_request->getBody();
+            
+            $plannedDom->loadStr($planned_duties_response);
+            $duties = $plannedDom->find('#DutyRosterTable tbody tr');
+            
+            foreach($duties as $duty) {
+                $dutyelements = $duty->find('td');
+                
+                if(strpos($dutyelements[4]->innerHtml, $dnrs["primary"])!==false || strpos($dutyelements[5]->innerHtml, $dnrs["primary"])!==false || strpos($dutyelements[6]->innerHtml, $dnrs["primary"])!==false) {
+                    $date = parseDate($dutyelements[1]->innerHtml, $dutyelements[2]->innerHtml);
+
+                    $alternatingEnd = null;
+                    if(strpos($dutyelements[7]->innerHtml, "Bis") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 4));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "Ende") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 5));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "18-") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 3));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "19-") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 3));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "17-") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 3));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "18 -") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 4));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "19 -") !== false ) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 4));
+                    }
+                    if(strpos($dutyelements[7]->innerHtml, "17 -") !== false) {
+                        $alternatingEnd = trim(substr($dutyelements[7]->innerHtml, 4));
+                    }
+                    $pd = [
+                        "day" => $dutyelements[0]->innerHtml,
+                        "date" => $dutyelements[1]->innerHtml,
+                        'time' => [
+                            'start' => $date['start'],
+                            'end' => $date['end'],
+                            'alternating' => $alternatingEnd,
+                        ],
+                        "location" => $dutyelements[3]->innerHtml,
+                        "team" => [
+                            "driver" => $dutyelements[4]->innerHtml,
+                            "san1" => $dutyelements[5]->innerHtml,
+                            "san2" => $dutyelements[6]->innerHtml,
+                        ],
+                        "remark" => $dutyelements[7]->innerHtml,
+                        "type" => $dutyname,
+                    ];
+                    $plannedDuties[] = $pd;
+                }
+            }
+        }        
+        foreach($events as $duty) {
+            foreach($plannedDuties as $plannedDuty) {
+            // dump("duty");
+            // dump($duty);
+            // dump("pd");
+            // dump($plannedDuty);
+                if($duty["date"] === $plannedDuty["date"]) {
+                    if($duty["title"] === $plannedDuty["type"]) {
+                        if($duty["time"]["start"] !== $plannedDuty["time"]["start"]) {
+                            $alarms[] = "Die Dienstzeit vom geplanten ".$plannedDuty["type"]." Dienst am ".$plannedDuty["date"]. " um ".$plannedDuty["time"]["start"]->format("H:i"). " wurde geändert.\nDer Dienst beginnt nun um ".$duty["time"]["start"]->format("H:i");
+                        }
+                    }
+                }
+            }
+        }
     
+
+
+    }
     foreach ($ambduty as $ambs) {
         try {
             $dom->loadStr($ambs)->innerHtml;
@@ -617,7 +742,7 @@ try {
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: attachment; filename=dienstplan_'.str_replace(".", "", $GLOBALS["username"]).'.ics');
     }
-    echo makeICalendar($events, $name, $dateStart, $dateEnd);
+    echo makeICalendar($events, $name, $dateStart, $dateEnd, $alarms);
     die();
 } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {
     print_r($rex);
