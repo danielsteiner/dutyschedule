@@ -1026,6 +1026,7 @@ function makeICalendar($events, $name, $dateStart, $dateEnd, $alarms = null) {
             throw $ex;
         }
     }
+    
     if($alarms !== null) {
         foreach($alarms as $alarm) {
             $vcal .= "BEGIN:VALARM\r\n";

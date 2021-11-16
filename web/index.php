@@ -484,10 +484,9 @@ try {
         } catch (PhpHtmlParser\Exceptions\EmptyCollectionException $ecex) {
         }
     }
-
+    $alarms = null;
     if($debug) {
         $alarms = []; 
-        dump($events);
         $planned_duties_request = $client->request('GET', $planned_duty_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
         $planned_duties_response = (string)$planned_duties_request->getBody();
         $relevant_duties = [
@@ -603,9 +602,6 @@ try {
                 }
             }
         }
-    
-
-
     }
     foreach ($ambduty as $ambs) {
         try {
