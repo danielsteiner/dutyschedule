@@ -485,6 +485,10 @@ function getFancyTitle($title, $location, $remark) {
             $fancytitle = "Bereitschaftsdienst BT-SAN";
             $teamlabels = ["Hauptdienst", "Beidienst", "Reserve"];
             break;
+        case "RD-Blut": 
+            $fancytitle = "Bluttransporte";
+            $teamlabels = ["Fahrer"];
+            break;  
         default:
             $fancytitle = "undefined";
             $teamlabels = "undefined";
@@ -1216,10 +1220,11 @@ function getFZGTagebuchLink($vehicle) {
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
         '005' => [ 
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089283', 
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089295', 
             'radioid' => '2-41/005', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
+        
         '008' => [ 
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=143680602', 
             'radioid' => '2-41/008', 
@@ -1241,7 +1246,7 @@ function getFZGTagebuchLink($vehicle) {
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
         '300' => [ 
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089295', 
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089283', 
             'radioid' => '2-41/300', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
@@ -1360,7 +1365,7 @@ function getFZGTagebuchLink($vehicle) {
         '035' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089351',
             'radioid' => '2-41/035',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '036' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089355',
@@ -1380,7 +1385,7 @@ function getFZGTagebuchLink($vehicle) {
         '044' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089367',
             'radioid' => '2-41/044',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '045' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089371',
@@ -1420,7 +1425,7 @@ function getFZGTagebuchLink($vehicle) {
         '056' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089391',
             'radioid' => '2-41/056',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '057' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089395',
@@ -1555,7 +1560,7 @@ function getFZGTagebuchLink($vehicle) {
         '087' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089474',
             'radioid' => '2-41/087',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '088' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089478',
@@ -1615,68 +1620,79 @@ function getFZGTagebuchLink($vehicle) {
         '163' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089542',
             'radioid' => '2-41/163',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Golf, Rufhilfe',
         ], 
         '311' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089546',
             'radioid' => '2-41/311',
-            'type' => 'MTW / PKW / SFG',
-        ], 
-        '313' => [
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089550',
-            'radioid' => '2-41/313',
-            'type' => 'MTW / PKW / SFG',
-        ], 
-        '322' => [
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089554',
-            'radioid' => '2-41/322',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '325' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=154655581',
             'radioid' => '2-41/325',
             'type' => 'Piaggio, REM'
         ], 
+        '313' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089550',
+            'radioid' => '2-41/313',
+            'type' => 'IM Caddy, Ausgemustert ?',
+        ], 
+        '322' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089554',
+            'radioid' => '2-41/322',
+            'type' => 'VW Caddy, Ausgemustert?',
+        ], 
+        
         '326' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=154640478',
             'radioid' => '2-41/326',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW T5 KHD Bus, Ausgemustert?',
         ], 
         '348' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089538',
             'radioid' => '2-41/348',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy, Rufhilfe',
         ], 
         '353' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089534',
             'radioid' => '2-41/353',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '361' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089558',
             'radioid' => '2-41/361',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'Seat Mii KUBE',
         ], 
         '366' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089518',
             'radioid' => '2-41/366',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy, Rufhilfe',
         ], 
         '367' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089522',
             'radioid' => '2-41/367',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '368' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089526',
             'radioid' => '2-41/368',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '369' => [
-            'link' => '/confluece/pages/viewpage.action?pageId=130089530',
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089530',
             'radioid' => '2-41/369',
-            'type' => 'MTW / PKW / SFG',
-        ],
+            'type' => 'VW Caddy',
+        ], 
+        '441' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=184659186',
+            'radioid' => '2-41/441',
+            'type' => 'VW Caddy',
+        ], 
+        '467' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=184659242',
+            'radioid' => '2-41/467',
+            'type' => 'Seat Mii, Rufhilfe',
+        ], 
     ];
     return $vehicles[$vehicle];
 }
