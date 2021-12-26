@@ -44,9 +44,8 @@ $capsule->addConnection([
 try{
     $capsule->setAsGlobal();
     $capsule->bootEloquent();
-    
 } catch(PDOException $ex) {
-    $log->error($ex);
+    $error->error($ex);
 }
 if(!function_exists("dd")) {
     function dd($var){
