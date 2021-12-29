@@ -10,8 +10,10 @@ use Carbon\CarbonImmutable;
 use Models\Employee;
 use Models\Location;
 use Models\User;
+use Monolog\ErrorHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use PHPHtmlParser\Exceptions\EmptyCollectionException;
-
 $i = 0;
 
 function parseAmb($row) {
@@ -345,8 +347,6 @@ function parseCourse($course) {
                 $duty['location']['address'] = "Erdbergstraße 143, 1030 Wien";
                 $duty['location']['lat'] = "48.192050";
                 $duty['location']['lon'] = "16.413330";
-
-
             } 
             if($day["location"] === "ABZ" || $day["location"] === "SanArena") {
                 $duty['location']['label'] =  "Wiener Rotes Kreuz - Ausbildungszentrum";
@@ -687,6 +687,89 @@ function getFullUser($member, $type = "duty") {
 
 function getAmbDetails($url) {
     $client = new GuzzleHttp\Client();
+    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $dom = new Dom;
+    $dom->loadStr((string) $amb_response->getBody());
+    $desc = $dom->find('#ctl00_main_m_AmbulanceDisplay_m_Webinfo')->innerHtml;
+    $amb_description = strip_tags($desc);
+    $descparts = explode("<p>", $desc);
+    $locationResult = [
+        "label" => "Wien, Österreich",
+        "address" => "Wien, Österreich",
+        "lat" => 48.2081743,
+        "lon" =>  16.3738189
+    ];
+    foreach($descparts as $part) {
+        if(strpos($part, "Wo:")!==false) {
+            $re = '/.*<b>Wo:<\/b>\s*([^\n\r]*)/';
+            preg_match_all($re, $part, $matches, PREG_SET_ORDER, 0);
+            if(is_countable($matches[0])) {
+                if(count($matches[0]) > 1 ) {
+                    $location = trim(str_replace("Für Verpflegung ist gesorgt!", "", $matches[0][1]));
+                    $geoclient = new GuzzleHttp\Client();
+                    if(strlen($location) > 0 ) {
+                        $dbloc = \Models\Location::whereLabel($location)->first();
+                        if(is_null($dbloc)) {
+                            $dbloc = new \Models\Location();
+                            if(strpos(strtolower($location), "nodo") !== false) {
+                                $locationResult = [
+                                    "label" =>  "Wiener Rotes Kreuz Zentrale",
+                                    "address" => "Nottendorfer Gasse 21, 1030 Wien",
+                                    "lat" => "48.190650",
+                                    "lon" => "16.411500"
+                                ];
+                            } else if (strpos(strtolower($location), "abz") !== false) {
+                                $locationResult = [
+                                    "label" =>  "Wiener Rotes Kreuz - Ausbildungszentrum",
+                                    "address" => "Safargasse 4, 1030 Wien",
+                                    "lat" => "48.189579",
+                                    "lon" => "16.414110"
+                                ];
+                            }
+                            else {
+                                $gmaps = $geoclient->request("GET", "https://maps.googleapis.com/maps/api/geocode/json?address=".rawurlencode($location)."&key=".env("GMAPS_KEY")."&region=at&language=de", ["headers" => [
+                                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36',
+                                ]]);
+                                
+                                $loc = json_decode((string) $gmaps->getBody());
+                                
+                                if(property_exists($loc, "results") && is_countable($loc->results)) {
+                                    $locationResult = [
+                                        "label" =>  $location,
+                                        "address" => $loc->results[0]->formatted_address,
+                                        "lat" => $loc->results[0]->geometry->location->lat,
+                                        "lon" => $loc->results[0]->geometry->location->lng,
+                                    ];
+                                    $dbloc->fill($locationResult);
+                                    $dbloc->save();
+                                }
+                            }
+                        } else {
+                            $locationResult = $dbloc;
+                        }
+                    }
+                } 
+            }
+        }
+    }
+    
+    $duties = [];
+    $teamtables = $dom->find('.DDL, .NORD, .WEST, .BVS, .VS');
+    $team = [];
+    foreach ($teamtables as $table) {
+        $dom->loadStr($table);
+        $rows = $dom->find('tr');
+        $fields = $dom->loadStr($rows[0])->find("td");
+        $team[] = getUserfromAmb($fields);
+    }
+    return ["description" => $amb_description, "team" => $team, "location" => $locationResult];
+}
+
+function debugGetAmbDetails() {
+    $url = "https://niu.wrk.at/Kripo/Ambulances/AmbulancesEdit.aspx?AmbulanceID=8180&AmbulanceNr=2022%2f00001&AmbulanceDayID=27406&AmbulanceDayNr=34";
+    $client = new GuzzleHttp\Client();
+    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $dom = new Dom;
     $dom->loadStr((string) $amb_response->getBody());
@@ -1031,17 +1114,7 @@ function makeICalendar($events, $name, $dateStart, $dateEnd, $alarms = null) {
         }
     }
     
-    if($alarms !== null) {
-        foreach($alarms as $alarm) {
-            $vcal .= "BEGIN:VALARM\r\n";
-            $vcal .= "TRIGGER:VALUE=DATE-TIME:19980101T050000Z\r\n";
-            $vcal .= "REPEAT:1\r\n";
-            $vcal .= "DURATION:PT15M\r\n";
-            $vcal .= "ACTION:DISPLAY\r\n";
-            $vcal .= "DESCRIPTION:".$alarm."\r\n";
-            $vcal .= "END:VALARM\r\n";
-        }
-    }
+    
     $vcal .= "END:VCALENDAR";
     
 
@@ -1076,7 +1149,8 @@ function makeVEVENT($event) {
     $vevent = "BEGIN:VEVENT\r\n";
     $vevent .= "UID:" . $event['hash'] . "@dutyschedule.danielsteiner.net\r\n";
     $vevent .= "DTSTAMP:" . str_replace([":", "-"], "", $event['time']['start']->toDateTimeLocalString()) . "\r\n";
-    $vevent .= "CATEGORYIES:" . $category . "\r\n";
+    $vevent .= "CATEGORIES:" . $category . "\r\n";
+    $vevent .= "CLASS:PRIVATE\r\n";
     if ($event["time"]["start"]->toDateTimeLocalString() === $event["time"]["end"]->toDateTimeLocalString()) {
         // Bereitschaftsdienst, full day
         $vevent .= "DTSTART;VALUE=DATE:" . str_replace([":", "-"], "", $event['time']['start']->format("Ymd")) . "\r\n";
@@ -1736,6 +1810,8 @@ function checkCredentials($username, $password) {
             return true; 
         }
     } catch (GuzzleHttp\Exception\ClientException $cex) {
+        $GLOBALS["eventlog"] = new Logger('wrk-dutyschedule-events');
+        $GLOBALS["eventlog"]->pushHandler(new StreamHandler(__DIR__."/../logs/events_".$username."_".date('y-m-d').".log", Logger::INFO));
         // $authResponseCode = $auth->response->getStatusCode();
         if(strpos($cex->getMessage(), "401 Unauthorized") !== false) {
             $GLOBALS["eventlog"]->info("Request for ".$username." failed due to invalid or missing credentials.");

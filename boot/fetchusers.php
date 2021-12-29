@@ -2,10 +2,13 @@
 require __DIR__ . '/bootstrap.php';
 
 use PHPHtmlParser\Dom;
+use Dotenv\Dotenv;
 
 $employees = \Models\Employee::whereFetched(0)->get();
 $jar = new \GuzzleHttp\Cookie\CookieJar;
-$dotenv->load(".secrets");
+$dotenv = Dotenv::create(__DIR__."/../");
+$dotenv = Dotenv::create(__DIR__."/../", '.secrets');
+$dotenv->load();
 
 dump(count($employees) ." Employees to be fetched...\r\n");
 $i = 1; 
@@ -22,9 +25,11 @@ foreach($employees as $employee){
         $client = new GuzzleHttp\Client();
         $emp_response = $client->request('GET', $employee->url, ['auth' => [env('FW_NIU_USER'), env('FW_NIU_PASS')], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
         $emp_response = $client->request('GET', $employee->url, ['auth' => [env('FW_NIU_USER'), env('FW_NIU_PASS')], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+        $emp_body = (string) $emp_response->getBody();
         $dom = new Dom;
-        $dom->loadStr((string) $emp_response->getBody());
-        $nameField = strip_tags($dom->find('#ctl00_main_shortEmpl_EmployeeName')->innerHtml);
+        $dom->loadStr($emp_body);
+
+        $nameField = strip_tags($dom->find('#ctl00_main__shortEmpl_EmployeeName')->innerHtml);
         $bracketpos = strpos($nameField, "(");
         $name = substr($nameField, 0, $bracketpos-1);
         $dnrs = explode(", ", substr($nameField, $bracketpos+1, -1));
