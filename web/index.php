@@ -19,6 +19,20 @@ $is_lba = false;
 
 $dateStart = date("d.m.Y", strtotime("-1 years", strtotime("first day of january")));
 $dateEnd = date("d.m.Y", strtotime("+1 years", strtotime("last day of december")));
+
+$combineCourseSubDays = false;
+$additionalCourses = [];
+ 
+if(array_key_exists("combinecourse", $_GET)) {
+    if($_GET["combinecourse"] == true) {
+        $combineCourseSubDays = true; 
+    }
+}
+ 
+if(array_key_exists("additionalCourses", $_GET)) {
+    $additionalCourses = explode(",", $_GET["additionalCourses"]);
+}
+
 if(array_key_exists("start", $_GET)){
     $dateStart = $_GET["start"];
 }
@@ -333,8 +347,6 @@ try {
             $courses_response = $client->request('POST', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id,  ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]); 
             $courses_response = $client->request('POST', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id,  ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]); 
             $courses = (string)$courses_response->getBody();
-            // echo $courses; 
-            // die();
         } 
         $dom->loadStr($courses);
         $courseTable = $dom->loadStr($dom->find('#ctl00_main_m_CourseList__CourseTable'));
@@ -348,6 +360,7 @@ try {
                 $cts = [
                     "SAN - Weiterbildung - ",
                     "SAN - Fortbildung - ",
+                    "SAN - Fortbildung-",
                     "Webinar - ",
                     "LBA - Ausbildung - ",
                     "SEF - Ausbildung - ",
@@ -359,6 +372,7 @@ try {
                     "SEF - Fortbildung - ",
                     "FSD - Ausbildung -  ",
                     "FSD - Fortbildung -  ",
+                    "MSSLM- ",
                 ];
                 $replaceval = ["","","","","","","","","","","","",""];
                 $title = str_replace($cts, $replaceval, strip_tags($courseparts[1]));
@@ -394,9 +408,14 @@ try {
                 $daysRow = $course_dom->find('#ctl00_main_m_DaysRow');
                 $days = $d->loadStr($daysRow)->find(".MessageTable tr");
                 unset($days[0]);
-    
-                foreach ($days as $day) {
+                
+                $savedDate = null;
+                $savedFrom = null;
+                $savedTo = null;
+
+                foreach ($days as $i => $day) {
                     $d = $course_dom->loadStr($day->innerHtml)->find('td');
+                    
                     $darray = [
                         "date" => $d[0]->innerHtml,
                         "from" => explode(" - ", $d[1]->innerHtml)[0],
@@ -406,6 +425,22 @@ try {
                         "room" => $d[4]->innerHtml,
                         "description" => $d[5]->innerHtml,
                     ];
+                    if($combineCourseSubDays) {
+                        if($i>0) {
+                            if(
+                                $darray["date"] === $savedDate &&
+                                $darray["from"] === $savedFrom &&
+                                $darray["to"] === $savedTo
+                            ) {
+                                continue;
+                            }
+                        }
+                    }
+                    $savedDate = $d[0]->innerHtml;
+                    $savedFrom = explode(" - ", $d[1]->innerHtml)[0];
+                    $savedTo = explode(" - ", $d[1]->innerHtml)[1];
+                     
+
                     $c["days"][] = $darray;
                 }
                 $d = new Dom;
@@ -433,7 +468,7 @@ try {
                     $infos = $detailrows[count($detailrows) - 1];
                     $info = $d->loadStr($infos->innerHtml)->find("td")[1];
                     $c["description"] = strip_tags($info->innerHtml);
-                    
+                    // https://niu.wrk.at/Kripo/Kufer/CourseDetail.aspx?CourseID=21330112
                     //grabbing attendees
                     $mts = $course_dom->loadStr($html)->find(".MessageTable");
         
@@ -455,7 +490,130 @@ try {
         $skipcourses = true;
         $error->log(300, "Could not get usable data for courses", ['user'=> $GLOBALS["username"]]);
     }
+    if(!empty($additionalCourses)) {
+        foreach($additionalCourses as $additionalCourseNumber) {
+            $additionalCourseResponse = $client->request('GET', 'https://niu.wrk.at/Kripo/Kufer/CourseDetail.aspx?CourseID='.$additionalCourseNumber, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+            $details_html = (string)$additionalCourseResponse->getBody();
+            $course_dom = new Dom;
+            $infos = $course_dom->loadStr($details_html);
+            $tmp = $infos->find("td.MessageHeader");
+            // foreach($tmp as $i => $node) {
+            //     dump($i." - ".$node);
+            // }
+            $cts = [
+                "SAN - Weiterbildung - ",
+                "SAN - Fortbildung - ",
+                "SAN - Ausbildung - ",
+                "Webinar - ",
+                "LBA - Ausbildung - ",
+                "SEF - Ausbildung - ",
+                "FKW - Ausbildung - ",
+                "BAS - Ausbildung - ",
+                "FKR - Ausbildung - ",
+                "KHD - Ausbildung - ",
+                "WRK - Ausbildung - ",
+                "SEF - Fortbildung - ",
+                "FSD - Ausbildung - ",
+                "FSD - Fortbildung - ",
+                "MSSLM- ",
+                "SAN - Fortbildung-",
+
+            ];
+            $replaceval = ["","","","","","","","","","","","",""];
+            $titlefield = str_replace($cts, $replaceval, strip_tags($tmp[1]));
+            $c = [
+                "course_id" => explode(" - ", strip_tags($titlefield))[0],
+                "title" => explode(" - ", strip_tags($titlefield))[1],
+                "start" => "",
+                "end" => "",
+                "location" => "",
+                "state" => "",
+                "participated" => "DELEGATED",
+                "qualification" => "",
+                "days" => []
+            ];
+            $courseArray = [];
+            $html = $course_dom->innerHtml;
+            $d = new Dom;
+            $daysRow = $course_dom->find('#ctl00_main_m_DaysRow');
+            $days = $d->loadStr($daysRow)->find(".MessageTable tr");
+            unset($days[0]);
+            
+            $savedDate = null;
+            $savedFrom = null;
+            $savedTo = null;
+
+            foreach ($days as $i => $day) {
+                $d = $course_dom->loadStr($day->innerHtml)->find('td');
+                
+                $darray = [
+                    "date" => $d[0]->innerHtml,
+                    "from" => explode(" - ", $d[1]->innerHtml)[0],
+                    "to" => explode(" - ", $d[1]->innerHtml)[1],
+                    "location" => $d[2]->innerHtml,
+                    "floor" => $d[3]->innerHtml,
+                    "room" => $d[4]->innerHtml,
+                    "description" => $d[5]->innerHtml,
+                ];
+                if($combineCourseSubDays) {
+                    if($i>0) {
+                        if(
+                            $darray["date"] === $savedDate &&
+                            $darray["from"] === $savedFrom &&
+                            $darray["to"] === $savedTo
+                        ) {
+                            continue;
+                        }
+                    }
+                }
+                $savedDate = $d[0]->innerHtml;
+                $savedFrom = explode(" - ", $d[1]->innerHtml)[0];
+                $savedTo = explode(" - ", $d[1]->innerHtml)[1];
+                 
+
+                $c["days"][] = $darray;
+            }
+            $d = new Dom;
+
+            $lecturerRow = $course_dom->loadStr($html)->find('#ctl00_main_m_LecturerRow');
+            try {
+                $tmp = $d->loadStr($lecturerRow->innerHtml)->find("td");
+                $lecturers = $tmp[1]->innerHtml;
+                $c["lecturers"] = explode("<br /> ", $lecturers);
+                foreach ($c["lecturers"] as $key => $lecturer) {
+                    if (empty(trim($lecturer))) {
+                        unset($c["lecturers"][$key]);
+                    }
+                    if ($lecturer === "noch nicht bekannt" || $lecturer === " noch nicht bekannt" || $lecturer === "Trainer" || $lecturer === "Übungsraum") {
+                        unset($c["lecturers"][$key]);
+                    }
+                }
+            } catch (\PHPHtmlParser\Exceptions\EmptyCollectionException $ex) {
+                $c["lecturers"] = "Keine Vortragenden Angegeben oder sie konnten nicht ausgelesen werden.";
+            }
+            //grab infos
+            if(!is_null($html)) {
+                $detailrows = $course_dom->loadStr(($course_dom->loadStr($html))->find(".MessageTable")[0])->find("tr");
     
+                $infos = $detailrows[count($detailrows) - 1];
+                $info = $d->loadStr($infos->innerHtml)->find("td")[1];
+                $c["description"] = strip_tags($info->innerHtml);
+                //grabbing attendees
+                $mts = $course_dom->loadStr($html)->find(".MessageTable");
+                $attendees = $course_dom->loadStr($mts[count($mts) - 1])->find("tr");
+                unset($attendees[0]);
+                foreach ($attendees as $attendee) {
+                    $tmp = $d->loadStr($attendee->innerHtml)->find("td");
+                    if ($tmp[3]->innerHtml !== "Storno") {
+                        $c["attendees"][] = replaceHex($tmp[1]->innerHtml);
+                    }
+                }
+            }
+            $c["url"] = "https://niu.wrk.at/Kripo/Kufer/" . $courselink;
+            $allCourses[] = $c;
+
+        }
+    }
 
     $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
@@ -532,7 +690,6 @@ try {
             }
         }
     } else {
-        
         //$alarms[] = ["triggertime" => "20211226T130000Z", "summary" => "Fehler beim Abrufen von Kursdaten", "text" => "Es gab einen Fehler beim Abrufen der Kursinformationen. Scheinbar dürfte es derzeit Probleme mit der Schnittstelle ABZ <-> NIU geben - das Kalendertool wird weiterhin versuchen, die Kursinformationen abzurufen. Bis der Fehler vom NIU Team behoben ist, sind jedoch keine Kursinformationen mehr verfügbar."];
     }
     if($is_lba) {

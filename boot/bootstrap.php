@@ -19,7 +19,7 @@ $error->pushHandler(new StreamHandler(__DIR__."/../logs/errors_".date('y-m-d')."
 ErrorHandler::register($error);
 $GLOBALS["errorlog"] = $error;
 
-$dotenv = Dotenv::create(__DIR__."/../");
+$dotenv = Dotenv::createImmutable(__DIR__."/../");
 $dotenv->load();
 
 if(env("APP_DEBUG")) {

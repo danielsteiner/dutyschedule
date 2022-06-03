@@ -16,6 +16,10 @@ use Monolog\Logger;
 use PHPHtmlParser\Exceptions\EmptyCollectionException;
 $i = 0;
 
+function env($var) {
+    return $_ENV[$var];
+}
+
 function parseAmb($row) {
     $elem = $row->find('td');
     if (count($elem) == 10) {
@@ -55,6 +59,7 @@ function parseAmb($row) {
         $duty['hash'] = generateHash($elem[2]->innerHtml . date('i'), $elem[6]->innerHtml, $elem[8]->innerHtml);
         $duty['title'] = $parsedTitle;
         $duty['status'] = "CONFIRMED";
+        $duty['url'] = $url;
     }
     $details = getAmbDetails($url);        
     $duty['location'] = $details["location"];
@@ -397,7 +402,12 @@ function parseCourse($course) {
 
             $duty['hash'] = generateHash($course["title"], $day["date"], $day["from"] . "-" . $day["to"]);
             $duty['title'] = $course["title"];
-            $duty['status'] = $course["participated"] === "Storno" ? "CANCELLED" : "CONFIRMED";
+            if($course["participated"] === "DELEGATED") {
+                $duty["status"] = "DELEGATED";
+            } else {
+                $duty['status'] = $course["participated"] === "Storno" ? "CANCELLED" : "CONFIRMED";
+            }
+            
             $duty['description'] = $course["description"];
             $duty['team'] = ["mandatory" => $course["lecturers"], "optional" => $course["attendees"]];
             $duty['url'] = $course["url"];
@@ -1211,6 +1221,8 @@ function makeVEVENT($event) {
     }
     if(array_key_exists('url', $event)) {
         $vevent .= "URL:".$event["url"]."\r\n";
+    } else {
+        // dump($event);
     }
     $vevent .= "END:VEVENT\r\n";
     return $vevent;
@@ -1780,20 +1792,24 @@ function strpos_arr($haystack, $needle) {
 }
 
 function healthcheck($username) {
-    $user = User::whereUsername($username)->first();
-    if(is_null($user)) {
-        $healthCheckUUID = createCheck($username);
-        $user = User::whereUsername($username)->first();
-        $user->username = $username; 
-        $user->healthcheckuuid = $healthCheckUUID; 
-        $user->save();
-        $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
-    }
-    try{
-        file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
-    } catch(Exception $ex) {
-        $GLOBALS["eventlog"]->error($ex);
-    }
+    return null;
+    // $user = User::whereUsername($username)->first();
+    // if(is_null($user)) {
+    //     $healthCheckUUID = createCheck($username);
+    //     $user = User::whereUsername($username)->first();
+    //     if(is_null($user) || empty($user)) {
+    //         $user = new User();
+    //     }
+    //     $user->username = $username; 
+    //     $user->healthcheckuuid = $healthCheckUUID; 
+    //     $user->save();
+    //     $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
+    // }
+    // try{
+    //     file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
+    // } catch(Exception $ex) {
+    //     $GLOBALS["eventlog"]->error($ex);
+    // }
 }
 
 function checkCredentials($username, $password) {
