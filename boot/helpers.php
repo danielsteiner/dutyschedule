@@ -10,9 +10,15 @@ use Carbon\CarbonImmutable;
 use Models\Employee;
 use Models\Location;
 use Models\User;
+use Monolog\ErrorHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use PHPHtmlParser\Exceptions\EmptyCollectionException;
-
 $i = 0;
+
+function env($var) {
+    return $_ENV[$var];
+}
 
 function parseAmb($row) {
     $elem = $row->find('td');
@@ -53,6 +59,7 @@ function parseAmb($row) {
         $duty['hash'] = generateHash($elem[2]->innerHtml . date('i'), $elem[6]->innerHtml, $elem[8]->innerHtml);
         $duty['title'] = $parsedTitle;
         $duty['status'] = "CONFIRMED";
+        $duty['url'] = $url;
     }
     $details = getAmbDetails($url);        
     $duty['location'] = $details["location"];
@@ -345,8 +352,6 @@ function parseCourse($course) {
                 $duty['location']['address'] = "Erdbergstraße 143, 1030 Wien";
                 $duty['location']['lat'] = "48.192050";
                 $duty['location']['lon'] = "16.413330";
-
-
             } 
             if($day["location"] === "ABZ" || $day["location"] === "SanArena") {
                 $duty['location']['label'] =  "Wiener Rotes Kreuz - Ausbildungszentrum";
@@ -397,7 +402,12 @@ function parseCourse($course) {
 
             $duty['hash'] = generateHash($course["title"], $day["date"], $day["from"] . "-" . $day["to"]);
             $duty['title'] = $course["title"];
-            $duty['status'] = $course["participated"] === "Storno" ? "CANCELLED" : "CONFIRMED";
+            if($course["participated"] === "DELEGATED") {
+                $duty["status"] = "DELEGATED";
+            } else {
+                $duty['status'] = $course["participated"] === "Storno" ? "CANCELLED" : "CONFIRMED";
+            }
+            
             $duty['description'] = $course["description"];
             $duty['team'] = ["mandatory" => $course["lecturers"], "optional" => $course["attendees"]];
             $duty['url'] = $course["url"];
@@ -485,6 +495,10 @@ function getFancyTitle($title, $location, $remark) {
             $fancytitle = "Bereitschaftsdienst BT-SAN";
             $teamlabels = ["Hauptdienst", "Beidienst", "Reserve"];
             break;
+        case "RD-Blut": 
+            $fancytitle = "Bluttransporte";
+            $teamlabels = ["Fahrer"];
+            break;  
         default:
             $fancytitle = "undefined";
             $teamlabels = "undefined";
@@ -683,6 +697,89 @@ function getFullUser($member, $type = "duty") {
 
 function getAmbDetails($url) {
     $client = new GuzzleHttp\Client();
+    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $dom = new Dom;
+    $dom->loadStr((string) $amb_response->getBody());
+    $desc = $dom->find('#ctl00_main_m_AmbulanceDisplay_m_Webinfo')->innerHtml;
+    $amb_description = strip_tags($desc);
+    $descparts = explode("<p>", $desc);
+    $locationResult = [
+        "label" => "Wien, Österreich",
+        "address" => "Wien, Österreich",
+        "lat" => 48.2081743,
+        "lon" =>  16.3738189
+    ];
+    foreach($descparts as $part) {
+        if(strpos($part, "Wo:")!==false) {
+            $re = '/.*<b>Wo:<\/b>\s*([^\n\r]*)/';
+            preg_match_all($re, $part, $matches, PREG_SET_ORDER, 0);
+            if(is_countable($matches[0])) {
+                if(count($matches[0]) > 1 ) {
+                    $location = trim(str_replace("Für Verpflegung ist gesorgt!", "", $matches[0][1]));
+                    $geoclient = new GuzzleHttp\Client();
+                    if(strlen($location) > 0 ) {
+                        $dbloc = \Models\Location::whereLabel($location)->first();
+                        if(is_null($dbloc)) {
+                            $dbloc = new \Models\Location();
+                            if(strpos(strtolower($location), "nodo") !== false) {
+                                $locationResult = [
+                                    "label" =>  "Wiener Rotes Kreuz Zentrale",
+                                    "address" => "Nottendorfer Gasse 21, 1030 Wien",
+                                    "lat" => "48.190650",
+                                    "lon" => "16.411500"
+                                ];
+                            } else if (strpos(strtolower($location), "abz") !== false) {
+                                $locationResult = [
+                                    "label" =>  "Wiener Rotes Kreuz - Ausbildungszentrum",
+                                    "address" => "Safargasse 4, 1030 Wien",
+                                    "lat" => "48.189579",
+                                    "lon" => "16.414110"
+                                ];
+                            }
+                            else {
+                                $gmaps = $geoclient->request("GET", "https://maps.googleapis.com/maps/api/geocode/json?address=".rawurlencode($location)."&key=".env("GMAPS_KEY")."&region=at&language=de", ["headers" => [
+                                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36',
+                                ]]);
+                                
+                                $loc = json_decode((string) $gmaps->getBody());
+                                
+                                if(property_exists($loc, "results") && is_countable($loc->results)) {
+                                    $locationResult = [
+                                        "label" =>  $location,
+                                        "address" => $loc->results[0]->formatted_address,
+                                        "lat" => $loc->results[0]->geometry->location->lat,
+                                        "lon" => $loc->results[0]->geometry->location->lng,
+                                    ];
+                                    $dbloc->fill($locationResult);
+                                    $dbloc->save();
+                                }
+                            }
+                        } else {
+                            $locationResult = $dbloc;
+                        }
+                    }
+                } 
+            }
+        }
+    }
+    
+    $duties = [];
+    $teamtables = $dom->find('.DDL, .NORD, .WEST, .BVS, .VS');
+    $team = [];
+    foreach ($teamtables as $table) {
+        $dom->loadStr($table);
+        $rows = $dom->find('tr');
+        $fields = $dom->loadStr($rows[0])->find("td");
+        $team[] = getUserfromAmb($fields);
+    }
+    return ["description" => $amb_description, "team" => $team, "location" => $locationResult];
+}
+
+function debugGetAmbDetails() {
+    $url = "https://niu.wrk.at/Kripo/Ambulances/AmbulancesEdit.aspx?AmbulanceID=8180&AmbulanceNr=2022%2f00001&AmbulanceDayID=27406&AmbulanceDayNr=34";
+    $client = new GuzzleHttp\Client();
+    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
     $dom = new Dom;
     $dom->loadStr((string) $amb_response->getBody());
@@ -981,7 +1078,7 @@ function generateHash($title, $date, $timestring) {
     }
 }
 
-function makeICalendar($events, $name, $dateStart, $dateEnd) {
+function makeICalendar($events, $name, $dateStart, $dateEnd, $alarms = null) {
     $url = array_key_exists("auth", $_GET) ? env('SCRIPT_URL') . "/?auth=" . $_GET["auth"] : env('SCRIPT_URL');
 
     $vcal = "BEGIN:VCALENDAR\r\n";
@@ -1026,8 +1123,10 @@ function makeICalendar($events, $name, $dateStart, $dateEnd) {
             throw $ex;
         }
     }
+    
+    
     $vcal .= "END:VCALENDAR";
-
+    
 
     $foldedVCal = "";
     $lines = explode("\r\n", $vcal);
@@ -1060,7 +1159,8 @@ function makeVEVENT($event) {
     $vevent = "BEGIN:VEVENT\r\n";
     $vevent .= "UID:" . $event['hash'] . "@dutyschedule.danielsteiner.net\r\n";
     $vevent .= "DTSTAMP:" . str_replace([":", "-"], "", $event['time']['start']->toDateTimeLocalString()) . "\r\n";
-    $vevent .= "CATEGORYIES:" . $category . "\r\n";
+    $vevent .= "CATEGORIES:" . $category . "\r\n";
+    $vevent .= "CLASS:PRIVATE\r\n";
     if ($event["time"]["start"]->toDateTimeLocalString() === $event["time"]["end"]->toDateTimeLocalString()) {
         // Bereitschaftsdienst, full day
         $vevent .= "DTSTART;VALUE=DATE:" . str_replace([":", "-"], "", $event['time']['start']->format("Ymd")) . "\r\n";
@@ -1121,6 +1221,8 @@ function makeVEVENT($event) {
     }
     if(array_key_exists('url', $event)) {
         $vevent .= "URL:".$event["url"]."\r\n";
+    } else {
+        // dump($event);
     }
     $vevent .= "END:VEVENT\r\n";
     return $vevent;
@@ -1204,10 +1306,11 @@ function getFZGTagebuchLink($vehicle) {
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
         '005' => [ 
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089283', 
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089295', 
             'radioid' => '2-41/005', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
+        
         '008' => [ 
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=143680602', 
             'radioid' => '2-41/008', 
@@ -1229,7 +1332,7 @@ function getFZGTagebuchLink($vehicle) {
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
         '300' => [ 
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089295', 
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089283', 
             'radioid' => '2-41/300', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
@@ -1348,7 +1451,7 @@ function getFZGTagebuchLink($vehicle) {
         '035' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089351',
             'radioid' => '2-41/035',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '036' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089355',
@@ -1368,7 +1471,7 @@ function getFZGTagebuchLink($vehicle) {
         '044' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089367',
             'radioid' => '2-41/044',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '045' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089371',
@@ -1408,7 +1511,7 @@ function getFZGTagebuchLink($vehicle) {
         '056' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089391',
             'radioid' => '2-41/056',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '057' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089395',
@@ -1543,7 +1646,7 @@ function getFZGTagebuchLink($vehicle) {
         '087' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089474',
             'radioid' => '2-41/087',
-            'type' => 'VW T5/6 Mittelhochdach',
+            'type' => 'Mercedes Benz Sprinter, KTW',
         ], 
         '088' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089478',
@@ -1603,68 +1706,79 @@ function getFZGTagebuchLink($vehicle) {
         '163' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089542',
             'radioid' => '2-41/163',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Golf, Rufhilfe',
         ], 
         '311' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089546',
             'radioid' => '2-41/311',
-            'type' => 'MTW / PKW / SFG',
-        ], 
-        '313' => [
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089550',
-            'radioid' => '2-41/313',
-            'type' => 'MTW / PKW / SFG',
-        ], 
-        '322' => [
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089554',
-            'radioid' => '2-41/322',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '325' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=154655581',
             'radioid' => '2-41/325',
             'type' => 'Piaggio, REM'
         ], 
+        '313' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089550',
+            'radioid' => '2-41/313',
+            'type' => 'IM Caddy, Ausgemustert ?',
+        ], 
+        '322' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089554',
+            'radioid' => '2-41/322',
+            'type' => 'VW Caddy, Ausgemustert?',
+        ], 
+        
         '326' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=154640478',
             'radioid' => '2-41/326',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW T5 KHD Bus, Ausgemustert?',
         ], 
         '348' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089538',
             'radioid' => '2-41/348',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy, Rufhilfe',
         ], 
         '353' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089534',
             'radioid' => '2-41/353',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '361' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089558',
             'radioid' => '2-41/361',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'Seat Mii KUBE',
         ], 
         '366' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089518',
             'radioid' => '2-41/366',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy, Rufhilfe',
         ], 
         '367' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089522',
             'radioid' => '2-41/367',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '368' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089526',
             'radioid' => '2-41/368',
-            'type' => 'MTW / PKW / SFG',
+            'type' => 'VW Caddy',
         ], 
         '369' => [
-            'link' => '/confluece/pages/viewpage.action?pageId=130089530',
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089530',
             'radioid' => '2-41/369',
-            'type' => 'MTW / PKW / SFG',
-        ],
+            'type' => 'VW Caddy',
+        ], 
+        '441' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=184659186',
+            'radioid' => '2-41/441',
+            'type' => 'VW Caddy',
+        ], 
+        '467' => [
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=184659242',
+            'radioid' => '2-41/467',
+            'type' => 'Seat Mii, Rufhilfe',
+        ], 
     ];
     return $vehicles[$vehicle];
 }
@@ -1678,20 +1792,24 @@ function strpos_arr($haystack, $needle) {
 }
 
 function healthcheck($username) {
-    $user = User::whereUsername($username)->first();
-    if(is_null($user)) {
-        $healthCheckUUID = createCheck($username);
-        $user = User::whereUsername($username)->first();
-        $user->username = $username; 
-        $user->healthcheckuuid = $healthCheckUUID; 
-        $user->save();
-        $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
-    }
-    try{
-        file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
-    } catch(Exception $ex) {
-        $GLOBALS["eventlog"]->error($ex);
-    }
+    return null;
+    // $user = User::whereUsername($username)->first();
+    // if(is_null($user)) {
+    //     $healthCheckUUID = createCheck($username);
+    //     $user = User::whereUsername($username)->first();
+    //     if(is_null($user) || empty($user)) {
+    //         $user = new User();
+    //     }
+    //     $user->username = $username; 
+    //     $user->healthcheckuuid = $healthCheckUUID; 
+    //     $user->save();
+    //     $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
+    // }
+    // try{
+    //     file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
+    // } catch(Exception $ex) {
+    //     $GLOBALS["eventlog"]->error($ex);
+    // }
 }
 
 function checkCredentials($username, $password) {
@@ -1708,6 +1826,8 @@ function checkCredentials($username, $password) {
             return true; 
         }
     } catch (GuzzleHttp\Exception\ClientException $cex) {
+        $GLOBALS["eventlog"] = new Logger('wrk-dutyschedule-events');
+        $GLOBALS["eventlog"]->pushHandler(new StreamHandler(__DIR__."/../logs/events_".$username."_".date('y-m-d').".log", Logger::INFO));
         // $authResponseCode = $auth->response->getStatusCode();
         if(strpos($cex->getMessage(), "401 Unauthorized") !== false) {
             $GLOBALS["eventlog"]->info("Request for ".$username." failed due to invalid or missing credentials.");

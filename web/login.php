@@ -52,7 +52,7 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="author" content="Daniel Steiner">
-        <title>NIU Dienstplan Export | Kalenderurl</title>
+        <title>NIU Dienstplan Sync | Kalenderurl</title>
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/signin.css" rel="stylesheet">
     </head>
@@ -91,7 +91,7 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="author" content="Daniel Steiner">
-        <title>NIU Dienstplan Export | Login</title>
+        <title>NIU Dienstplan Sync | Login</title>
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/signin.css" rel="stylesheet">
     </head>
