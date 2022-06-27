@@ -184,6 +184,9 @@ function parseRDDuty($duty, $title) {
         stripos($title, "RKP") !== false ||
         stripos($title, "RKS") !== false ||
         stripos($title, "RKL") !== false ||
+        stripos($title, "RKF") !== false ||
+        stripos($title, "RKL2") !== false ||
+        stripos($title, "RKL3") !== false ||
         stripos($title, "RKIII") !== false
     ) {
         $duty["dutytype"] = "RTW";
@@ -451,6 +454,9 @@ function getFancyTitle($title, $location, $remark) {
         case "RKS":
             $fancytitle = "RTW RKS-1";
             $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
+        case "RKF":
+            $fancytitle = "RTW RKS-1";
+            $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
             break;
         case "RKL":
             $fancytitle = "RTW RKL-1";
@@ -463,7 +469,7 @@ function getFancyTitle($title, $location, $remark) {
         case "RKIII":
         case "RKL3":
         case "NAW-RK3":
-            $fancytitle = "NAW/ITW RKL-3";
+            $fancytitle = "RTW RKL-3";
             $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
             break;
         case "SPEZ":
@@ -512,46 +518,31 @@ function getFancyTitle($title, $location, $remark) {
             $teamlabels = ["Fahrer", "SAN1", "SAN2"];
         }
     }
-    if (stripos($remark, "RKK1") !== false) {
+    if (stripos($remark, "RKK1") !== false || stripos($remark, "Notfall-KTW RKK 1") !== false) {
         $fancytitle = "NKTW RKK1";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
-    if (stripos($remark, "RKK2") !== false) {
+    if (stripos($remark, "RKK2") !== false || stripos($remark, "Notfall-KTW RKK 2") !== false) {
         $fancytitle = "NKTW RKK2";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
-    if (stripos($remark, "RKK3") !== false) {
+    if (stripos($remark, "RKK3") !== false || stripos($remark, "Notfall-KTW RKK 3") !== false) {
         $fancytitle = "NKTW RKK3";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
-    if (stripos($remark, "RKK4") !== false) {
+    if (stripos($remark, "RKK4") !== false || stripos($remark, "Notfall-KTW RKK 4") !== false) {
         $fancytitle = "NKTW RKK4";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
-    if (stripos($remark, "RKK5") !== false) {
+    if (stripos($remark, "RKK5") !== false || stripos($remark, "Notfall-KTW RKK 5") !== false) {
         $fancytitle = "NKTW RKK5";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
-    if (stripos($remark, "Notfall-KTW RKK 1") !== false) {
-        $fancytitle = "NKTW RKK1";
+    if (stripos($remark, "RKK6") !== false || stripos($remark, "Notfall-KTW RKK 6") !== false) {
+        $fancytitle = "NKTW RKK6";
         $teamlabels = ["Fahrer", "SAN1", "SAN2"];
     }
-    if (stripos($remark, "Notfall-KTW RKK 2") !== false) {
-        $fancytitle = "NKTW RKK2";
-        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
-    }
-    if (stripos($remark, "Notfall-KTW RKK 3") !== false) {
-        $fancytitle = "NKTW RKK3";
-        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
-    }
-    if (stripos($remark, "Notfall-KTW RKK 4") !== false) {
-        $fancytitle = "NKTW RKK4";
-        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
-    }
-    if (stripos($remark, "Notfall-KTW RKK 5") !== false) {
-        $fancytitle = "NKTW RKK5";
-        $teamlabels = ["Fahrer", "SAN1", "SAN2"];
-    }
+
     if (stripos($remark, "ITW") !== false) {
         $fancytitle = "NAW/ITW RKL-3";
         $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
@@ -714,52 +705,57 @@ function getAmbDetails($url) {
         if(strpos($part, "Wo:")!==false) {
             $re = '/.*<b>Wo:<\/b>\s*([^\n\r]*)/';
             preg_match_all($re, $part, $matches, PREG_SET_ORDER, 0);
-            if(is_countable($matches[0])) {
-                if(count($matches[0]) > 1 ) {
-                    $location = trim(str_replace("Für Verpflegung ist gesorgt!", "", $matches[0][1]));
-                    $geoclient = new GuzzleHttp\Client();
-                    if(strlen($location) > 0 ) {
-                        $dbloc = \Models\Location::whereLabel($location)->first();
-                        if(is_null($dbloc)) {
-                            $dbloc = new \Models\Location();
-                            if(strpos(strtolower($location), "nodo") !== false) {
-                                $locationResult = [
-                                    "label" =>  "Wiener Rotes Kreuz Zentrale",
-                                    "address" => "Nottendorfer Gasse 21, 1030 Wien",
-                                    "lat" => "48.190650",
-                                    "lon" => "16.411500"
-                                ];
-                            } else if (strpos(strtolower($location), "abz") !== false) {
-                                $locationResult = [
-                                    "label" =>  "Wiener Rotes Kreuz - Ausbildungszentrum",
-                                    "address" => "Safargasse 4, 1030 Wien",
-                                    "lat" => "48.189579",
-                                    "lon" => "16.414110"
-                                ];
-                            }
-                            else {
-                                $gmaps = $geoclient->request("GET", "https://maps.googleapis.com/maps/api/geocode/json?address=".rawurlencode($location)."&key=".env("GMAPS_KEY")."&region=at&language=de", ["headers" => [
-                                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36',
-                                ]]);
-                                
-                                $loc = json_decode((string) $gmaps->getBody());
-                                
-                                if(property_exists($loc, "results") && is_countable($loc->results)) {
-                                    $locationResult = [
-                                        "label" =>  $location,
-                                        "address" => $loc->results[0]->formatted_address,
-                                        "lat" => $loc->results[0]->geometry->location->lat,
-                                        "lon" => $loc->results[0]->geometry->location->lng,
-                                    ];
-                                    $dbloc->fill($locationResult);
-                                    $dbloc->save();
+            try {
+                if(!empty($matches)) {
+                    if(is_countable($matches[0])) {
+                        if(count($matches[0]) > 1 ) {
+                            $location = trim(str_replace("Für Verpflegung ist gesorgt!", "", $matches[0][1]));
+                            $geoclient = new GuzzleHttp\Client();
+                            if(strlen($location) > 0 ) {
+                                $dbloc = \Models\Location::whereLabel($location)->first();
+                                if(is_null($dbloc)) {
+                                    $dbloc = new \Models\Location();
+                                    if(strpos(strtolower($location), "nodo") !== false) {
+                                        $locationResult = [
+                                            "label" =>  "Wiener Rotes Kreuz Zentrale",
+                                            "address" => "Nottendorfer Gasse 21, 1030 Wien",
+                                            "lat" => "48.190650",
+                                            "lon" => "16.411500"
+                                        ];
+                                    } else if (strpos(strtolower($location), "abz") !== false) {
+                                        $locationResult = [
+                                            "label" =>  "Wiener Rotes Kreuz - Ausbildungszentrum",
+                                            "address" => "Safargasse 4, 1030 Wien",
+                                            "lat" => "48.189579",
+                                            "lon" => "16.414110"
+                                        ];
+                                    }
+                                    else {
+                                        $gmaps = $geoclient->request("GET", "https://maps.googleapis.com/maps/api/geocode/json?address=".rawurlencode($location)."&key=".env("GMAPS_KEY")."&region=at&language=de", ["headers" => [
+                                            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36',
+                                        ]]);
+                                        
+                                        $loc = json_decode((string) $gmaps->getBody());
+                                        if(property_exists($loc, "results") && is_countable($loc->results)) {
+                                            
+                                            $locationResult = [
+                                                "label" =>  $location,
+                                                "address" => $loc->results[0]->formatted_address,
+                                                "lat" => $loc->results[0]->geometry->location->lat,
+                                                "lon" => $loc->results[0]->geometry->location->lng,
+                                            ];
+                                            $dbloc->fill($locationResult);
+                                            $dbloc->save();
+                                        }
+                                    }
+                                } else {
+                                    $locationResult = $dbloc;
                                 }
                             }
-                        } else {
-                            $locationResult = $dbloc;
-                        }
+                        } 
                     }
-                } 
+                }
+            } catch(Exception $ex) {
             }
         }
     }
@@ -1020,6 +1016,9 @@ function parseLocation($title, $location) {
             Location::whereShortlabel("Penzing")->first()->toArray();
         } else if (strtolower($location) == "vs") {
             Location::whereShortlabel("Arsenal")->first()->toArray();
+        }
+        } else if (strtolower($location) == "nord" || strtolower($location) === "flo") {
+            Location::whereShortlabel("Nord")->first()->toArray();
         }
     } else if (stripos($title, "Journal") !== false) {
         Location::whereShortlabel("Leitstelle WRK")->first()->toArray();

@@ -2,7 +2,7 @@
     "name": "steinerd/wrk-dutyschedule",
     "require": {
         "vlucas/phpdotenv": "5.4",
-        "guzzlehttp/guzzle": "^7.4",
+        "guzzlehttp/guzzle": "^7.4.3",
         "paquettg/php-html-parser": "^2.0",
         "nesbot/carbon": "^2.57",
         "monolog/monolog": "^2.3",
