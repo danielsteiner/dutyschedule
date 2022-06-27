@@ -67,7 +67,48 @@ function parseAmb($row) {
     $duty["team"] = $details["team"];
     return $duty;
 }
-
+function filterUnusualEndTime($html) {
+    $endtime = null;
+    preg_match('/([0-1][0-9]|[2][0-3]):([0-5][0-9])/', $html, $matches);
+    if (count($matches) > 1) {
+        $endtime = $matches[0];
+    } else {
+        if (is_null($endtime)) {
+            if (strpos(strtolower($html), "00h") !== false || strpos(strtolower($html), "bis 00") !== false) {
+                $endtime = "00:00";
+            } else if (strpos(strtolower($html), "0030h") !== false || strpos(strtolower($html), "0030h") !== false) {
+                $endtime = "00:30";
+            } else if (strpos(strtolower($html), "ende 23") !== false) {
+                $endtime = "23:00";
+            } else if (strpos(strtolower($html), "ende 00") !== false) {
+                $endtime = "00:00";
+            } else if (strpos(strtolower($html), "ende 00:30") !== false) {
+                $endtime = "00:30";
+            } else if (strpos(strtolower($html), "ende 01") !== false) {
+                $endtime = "01:00";
+            } else if (strpos(strtolower($html), "ende 02") !== false) {
+                $endtime = "02:00";
+            } else if (strpos(strtolower($html), "01h") !== false || strpos(strtolower($html), "bis 01") !== false) {
+                $endtime = "01:00";
+            } else if (strpos(strtolower($html), "02h") !== false || strpos(strtolower($html), "bis 02") !== false) {
+                $endtime = "02:00";
+            } else if (strpos(strtolower($html), "01h") !== false || strpos(strtolower($html), "bis 01") !== false) {
+                $endtime = "01:00";
+            } else if (strpos(strtolower($html), "-00") !== false || strpos(strtolower($html), "- 00") !== false) {
+                $endtime = "00:00";
+            } else if (strpos(strtolower($html), "-01") !== false || strpos(strtolower($html), "- 01") !== false) {
+                $endtime = "01:00";
+            } else if (strpos(strtolower($html), "-0030") !== false || strpos(strtolower($html), "- 0030") !== false) {
+                $endtime = "00:30";
+            } else if (strpos(strtolower($html), "-02") !== false || strpos(strtolower($html), "- 02") !== false) {
+                $endtime = "02:00";
+            } else if (strpos(strtolower($html), "-23") !== false || strpos(strtolower($html), "- 23") !== false) {
+                $endtime = "23:00";
+            }
+        }
+    }
+    return $endtime;
+}
 function parseRDDuty($duty, $title) {
     $fixed = false;
 
@@ -82,6 +123,9 @@ function parseRDDuty($duty, $title) {
     $location = $details[3]->innerHtml;
 
     $date = parseDate($details[1]->innerHtml, $details[2]->innerHtml);
+    
+    
+    $end = $date["end"];
     $duty = [
         'day' => $details[0]->innerHtml,
         'date' => $details[1]->innerHtml,
@@ -253,6 +297,13 @@ function parseRDDuty($duty, $title) {
     }
     if (stripos($title, "HIO") !== false) {
         $duty["dutytype"] = "HIO";
+    }
+    $endTime = filterUnusualEndTime($remark);
+    
+    if($endTime !== null) {        
+        $ds = new CarbonImmutable($details[1]->innerHtml);
+        $de = $ds->addDays(1);
+        $duty["time"]["end"] = CarbonImmutable::parse($de->year . "-" . $de->month . "-" . $de->day . " " . $endTime, "Europe/Vienna");
     }
 
     $parsedTitle = parseTitle($title, $location, $remark);
@@ -454,8 +505,9 @@ function getFancyTitle($title, $location, $remark) {
         case "RKS":
             $fancytitle = "RTW RKS-1";
             $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
+            break;
         case "RKF":
-            $fancytitle = "RTW RKS-1";
+            $fancytitle = "RTW RKF-1";
             $teamlabels = ["Fahrer", "SAN1", "SAN2", "Arzt", "Azubi"];
             break;
         case "RKL":
@@ -1001,29 +1053,30 @@ function parseLocation($title, $location) {
         ],
     ];
     $loc = "";
+    
     if (stripos($title, "KTW") !== false) {
-        //let's assume, this is a KTW duty. This means possible locations are BVS, VS, Nord, West, Nodo.
+        //let's assume, this is a (N)KTW duty. This means possible locations are BVS, VS, Nord, West, Nodo.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
-            Location::whereShortlabel("Nodo")->first()->toArray();
+            $loc = $locations["Nodo"];
         } else {
-            Location::whereShortlabel(ucfirst($location))->first()->toArray();
+            $loc = $locations[ucfirst($location)];
         }
     } else if (stripos($title, "RK") !== false) {
-        //let's assume, this is a RTW duty. This means possible locations are Nodo, Arsenal and Penzing.
+        //let's assume, this is a RTW duty. This means possible locations are Nodo,Nord,  Arsenal and Penzing.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
-            Location::whereShortlabel("Nodo")->first()->toArray();
-        } else if (strtolower($location) == "west") {
-            Location::whereShortlabel("Penzing")->first()->toArray();
-        } else if (strtolower($location) == "vs") {
-            Location::whereShortlabel("Arsenal")->first()->toArray();
-        }
+            $loc = $locations["Nodo"];
         } else if (strtolower($location) == "nord" || strtolower($location) === "flo") {
-            Location::whereShortlabel("Nord")->first()->toArray();
-        }
+            $loc = $locations["Nord"];
+        } else if (strtolower($location) == "west") {
+            $loc = $locations["Penzing"];
+        } else if (strtolower($location) == "vs") {
+            
+            $loc = $locations["Arsenal"];
+        } 
     } else if (stripos($title, "Journal") !== false) {
-        Location::whereShortlabel("Leitstelle WRK")->first()->toArray();
+        $loc = $locations["Leitstelle WRK"];
     } else if (stripos($title, "ÄFD-Calltaker") !== false) {
-        $loc = Location::whereShortlabel("Leitstelle ÄFD")->first()->toArray();
+        $loc = $locations["Leitstelle WRK"];
     } else {
         $loc = Location::whereShortlabel($title)->first();
         if(!is_null($loc)) {
@@ -1031,6 +1084,7 @@ function parseLocation($title, $location) {
             $loc = $loc->toArray();
         }
     }
+    
     return $loc;
 }
 
@@ -1154,9 +1208,9 @@ function makeVEVENT($event) {
             $category = $event["dutytype"];
             break;
     }
-
+    
     $vevent = "BEGIN:VEVENT\r\n";
-    $vevent .= "UID:" . $event['hash'] . "@dutyschedule.danielsteiner.net\r\n";
+    $vevent .= "UID:" . $event['hash'] . "@wrkdpl.com\r\n";
     $vevent .= "DTSTAMP:" . str_replace([":", "-"], "", $event['time']['start']->toDateTimeLocalString()) . "\r\n";
     $vevent .= "CATEGORIES:" . $category . "\r\n";
     $vevent .= "CLASS:PRIVATE\r\n";
@@ -1189,10 +1243,16 @@ function makeVEVENT($event) {
     $vevent .= "X-ALT-DESC;FMTTYPE=text/html:<html><body>" . $description . "</body></html>\r\n";
     $vevent .= "STATUS:" . $event['status'] . "\r\n";
     $vevent .= "TRANSP:OPAQUE\r\n";
-    if(array_key_exists('location', $event)){
-        if (is_array($event['location'])) {
-            $vevent .= "LOCATION:" . $event['location']['label'] . " " . $event['location']['address'] . "\r\n";
-            $vevent .= "GEO:" . $event['location']['lat'] . ";" . $event['location']['lon'] . "\r\n";
+
+    if(!is_null($event['location']) && !empty($event["location"])){
+        if(!is_array($event["location"])) {
+            $loc = $event["location"]->toArray();
+        } else {
+            $loc = $event["location"];
+        }
+        if (is_array($loc)) {
+            $vevent .= "LOCATION:" . $loc['label'] . " " . $loc['address'] . "\r\n";
+            $vevent .= "GEO:" . $loc['lat'] . ";" . $loc['lon'] . "\r\n";
         }
     }
 
