@@ -795,10 +795,10 @@ try {
         }
     }
     $log->info("Request for " . $username." has ".count($events)." Events");
-    if(!$GLOBALS["debug"]) {
+    // if(!$GLOBALS["debug"]) {
         header('Content-Type: text/calendar; charset=utf-8');
         header('Content-Disposition: attachment; filename=dienstplan_'.str_replace(".", "", $GLOBALS["username"]).'.ics');
-    }
+    // }
     echo makeICalendar($events, $name, $dateStart, $dateEnd, $alarms);
     die();
 } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {

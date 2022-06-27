@@ -1244,18 +1244,19 @@ function makeVEVENT($event) {
     $vevent .= "STATUS:" . $event['status'] . "\r\n";
     $vevent .= "TRANSP:OPAQUE\r\n";
 
-    if(!is_null($event['location']) && !empty($event["location"])){
-        if(!is_array($event["location"])) {
-            $loc = $event["location"]->toArray();
-        } else {
-            $loc = $event["location"];
-        }
-        if (is_array($loc)) {
-            $vevent .= "LOCATION:" . $loc['label'] . " " . $loc['address'] . "\r\n";
-            $vevent .= "GEO:" . $loc['lat'] . ";" . $loc['lon'] . "\r\n";
+    if(array_key_exists('location', $event)) {  
+        if(!is_null($event['location']) && !empty($event["location"])){
+            if(!is_array($event["location"])) {
+                $loc = $event["location"]->toArray();
+            } else {
+                $loc = $event["location"];
+            }
+            if (is_array($loc)) {
+                $vevent .= "LOCATION:" . $loc['label'] . " " . $loc['address'] . "\r\n";
+                $vevent .= "GEO:" . $loc['lat'] . ";" . $loc['lon'] . "\r\n";
+            }
         }
     }
-
     if (array_key_exists("mandatory", $event["team"])) {
         foreach ($event["team"] as $type => $members) {
             $attendeetype = $type === "mandatory" ? "REQ-PARTICIPANT" : "OPT-PARTICIPANT";
