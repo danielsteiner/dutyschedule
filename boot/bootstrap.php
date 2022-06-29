@@ -14,14 +14,13 @@ $requestingUser = "";
 
 $log = new Logger('wrk-dutyschedule');
 $error = new Logger("wrk-dutyschedule.error");
-
 $log->pushHandler(new StreamHandler(__DIR__."/../logs/calendar_".date('y-m-d').".log", Logger::INFO));
 $error->pushHandler(new StreamHandler(__DIR__."/../logs/errors_".date('y-m-d').".log", Logger::ERROR));
 ErrorHandler::register($error);
+$GLOBALS["errorlog"] = $error;
 
-$dotenv = Dotenv::create(__DIR__."/../");
+$dotenv = Dotenv::createImmutable(__DIR__."/../");
 $dotenv->load();
-
 
 if(env("APP_DEBUG")) {
     $whoops = new \Whoops\Run;
@@ -44,9 +43,8 @@ $capsule->addConnection([
 try{
     $capsule->setAsGlobal();
     $capsule->bootEloquent();
-    
 } catch(PDOException $ex) {
-    $log->error($ex);
+    $error->error($ex);
 }
 if(!function_exists("dd")) {
     function dd($var){
