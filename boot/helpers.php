@@ -20,6 +20,12 @@ function env($var) {
     return $_ENV[$var];
 }
 
+function getHttpClientOptions($other_params = null){
+	$other_params = !is_null($other_params)?$other_params:array();
+	$verify = !(int)env("DONT_VERIFY_SSL");
+	return array_merge(['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"], 'verify' => $verify], $other_params);
+}
+
 function parseAmb($row) {
     $elem = $row->find('td');
     if (count($elem) == 10) {
@@ -123,8 +129,8 @@ function parseRDDuty($duty, $title) {
     $location = $details[3]->innerHtml;
 
     $date = parseDate($details[1]->innerHtml, $details[2]->innerHtml);
-    
-    
+
+
     $end = $date["end"];
     $duty = [
         'day' => $details[0]->innerHtml,
@@ -299,8 +305,8 @@ function parseRDDuty($duty, $title) {
         $duty["dutytype"] = "HIO";
     }
     $endTime = filterUnusualEndTime($remark);
-    
-    if($endTime !== null) {        
+
+    if($endTime !== null) {
         $ds = new CarbonImmutable($details[1]->innerHtml);
         $de = $ds->addDays(1);
         $duty["time"]["end"] = CarbonImmutable::parse($de->year . "-" . $de->month . "-" . $de->day . " " . $endTime, "Europe/Vienna");
@@ -461,7 +467,7 @@ function parseCourse($course) {
             } else {
                 $duty['status'] = $course["participated"] === "Storno" ? "CANCELLED" : "CONFIRMED";
             }
-            
+
             $duty['description'] = $course["description"];
             $duty['team'] = ["mandatory" => $course["lecturers"], "optional" => $course["attendees"]];
             $duty['url'] = $course["url"];
@@ -553,10 +559,10 @@ function getFancyTitle($title, $location, $remark) {
             $fancytitle = "Bereitschaftsdienst BT-SAN";
             $teamlabels = ["Hauptdienst", "Beidienst", "Reserve"];
             break;
-        case "RD-Blut": 
+        case "RD-Blut":
             $fancytitle = "Bluttransporte";
             $teamlabels = ["Fahrer"];
-            break;  
+            break;
         default:
             $fancytitle = "undefined";
             $teamlabels = "undefined";
@@ -740,8 +746,8 @@ function getFullUser($member, $type = "duty") {
 
 function getAmbDetails($url) {
     $client = new GuzzleHttp\Client();
-    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $amb_response = $client->request('GET', $url, getHttpClientOptions());
+    $amb_response = $client->request('GET', $url, getHttpClientOptions());
     $dom = new Dom;
     $dom->loadStr((string) $amb_response->getBody());
     $desc = $dom->find('#ctl00_main_m_AmbulanceDisplay_m_Webinfo')->innerHtml;
@@ -786,10 +792,10 @@ function getAmbDetails($url) {
                                         $gmaps = $geoclient->request("GET", "https://maps.googleapis.com/maps/api/geocode/json?address=".rawurlencode($location)."&key=".env("GMAPS_KEY")."&region=at&language=de", ["headers" => [
                                             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36',
                                         ]]);
-                                        
+
                                         $loc = json_decode((string) $gmaps->getBody());
                                         if(property_exists($loc, "results") && is_countable($loc->results)) {
-                                            
+
                                             $locationResult = [
                                                 "label" =>  $location,
                                                 "address" => $loc->results[0]->formatted_address,
@@ -804,14 +810,14 @@ function getAmbDetails($url) {
                                     $locationResult = $dbloc;
                                 }
                             }
-                        } 
+                        }
                     }
                 }
             } catch(Exception $ex) {
             }
         }
     }
-    
+
     $duties = [];
     $teamtables = $dom->find('.DDL, .NORD, .WEST, .BVS, .VS');
     $team = [];
@@ -827,8 +833,8 @@ function getAmbDetails($url) {
 function debugGetAmbDetails() {
     $url = "https://niu.wrk.at/Kripo/Ambulances/AmbulancesEdit.aspx?AmbulanceID=8180&AmbulanceNr=2022%2f00001&AmbulanceDayID=27406&AmbulanceDayNr=34";
     $client = new GuzzleHttp\Client();
-    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-    $amb_response = $client->request('GET', $url, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $amb_response = $client->request('GET', $url, getHttpClientOptions());
+    $amb_response = $client->request('GET', $url, getHttpClientOptions());
     $dom = new Dom;
     $dom->loadStr((string) $amb_response->getBody());
     $desc = $dom->find('#ctl00_main_m_AmbulanceDisplay_m_Webinfo')->innerHtml;
@@ -1053,7 +1059,7 @@ function parseLocation($title, $location) {
         ],
     ];
     $loc = "";
-    
+
     if (stripos($title, "KTW") !== false) {
         //let's assume, this is a (N)KTW duty. This means possible locations are BVS, VS, Nord, West, Nodo.
         if (strtolower($location) == "lv" || strtolower($location) == "rd" || strtolower($location) == "ddl") {
@@ -1070,9 +1076,9 @@ function parseLocation($title, $location) {
         } else if (strtolower($location) == "west") {
             $loc = $locations["Penzing"];
         } else if (strtolower($location) == "vs") {
-            
+
             $loc = $locations["Arsenal"];
-        } 
+        }
     } else if (stripos($title, "Journal") !== false) {
         $loc = $locations["Leitstelle WRK"];
     } else if (stripos($title, "ÄFD-Calltaker") !== false) {
@@ -1083,8 +1089,17 @@ function parseLocation($title, $location) {
             dd($title);
             $loc = $loc->toArray();
         }
+		else
+		{
+			$loc = [
+				"label" => $title,
+				"address" => "Missing Location!",
+				"lat" => "0",
+				"lon" => "0"
+			];
+		}
     }
-    
+
     return $loc;
 }
 
@@ -1176,10 +1191,10 @@ function makeICalendar($events, $name, $dateStart, $dateEnd, $alarms = null) {
             throw $ex;
         }
     }
-    
-    
+
+
     $vcal .= "END:VCALENDAR";
-    
+
 
     $foldedVCal = "";
     $lines = explode("\r\n", $vcal);
@@ -1208,7 +1223,7 @@ function makeVEVENT($event) {
             $category = $event["dutytype"];
             break;
     }
-    
+
     $vevent = "BEGIN:VEVENT\r\n";
     $vevent .= "UID:" . $event['hash'] . "@wrkdpl.com\r\n";
     $vevent .= "DTSTAMP:" . str_replace([":", "-"], "", $event['time']['start']->toDateTimeLocalString()) . "\r\n";
@@ -1244,7 +1259,7 @@ function makeVEVENT($event) {
     $vevent .= "STATUS:" . $event['status'] . "\r\n";
     $vevent .= "TRANSP:OPAQUE\r\n";
 
-    if(array_key_exists('location', $event)) {  
+    if(array_key_exists('location', $event)) {
         if(!is_null($event['location']) && !empty($event["location"])){
             if(!is_array($event["location"])) {
                 $loc = $event["location"]->toArray();
@@ -1366,12 +1381,12 @@ function getFZGTagebuchLink($vehicle) {
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
         '005' => [ 
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089295', 
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089295',
             'radioid' => '2-41/005', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
-        
-        '008' => [ 
+
+        '008' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=143680602', 
             'radioid' => '2-41/008', 
             'type' => 'Mercedes Benz Sprinter, RTW'
@@ -1392,7 +1407,7 @@ function getFZGTagebuchLink($vehicle) {
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
         '300' => [ 
-            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089283', 
+            'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089283',
             'radioid' => '2-41/300', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ], 
@@ -1401,12 +1416,12 @@ function getFZGTagebuchLink($vehicle) {
             'radioid' => '2-41/301', 
             'type' => 'Mercedes Benz Sprinter, RTW'
         ],
-        
+
         '006' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130102334',
             'radioid' => '2-41/006',
             'type' => 'VW T6 Hochdach',
-        ], 
+        ],
         '007' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130102340',
             'radioid' => '2-41/007',
@@ -1426,7 +1441,7 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=168788449',
             'radioid' => '2-41/040',
             'type' => 'VW T6 Hochdach',
-        ], 
+        ],
 
         '010' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089107',
@@ -1442,22 +1457,22 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041505',
             'radioid' => '2-41/017',
             'type' => 'Mercedes Benz Sprinter, KTW',
-        ], 
+        ],
         '018' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041535',
             'radioid' => '2-41/018',
             'type' => 'Mercedes Benz Sprinter, KTW',
-        ], 
+        ],
         '019' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041661',
             'radioid' => '2-41/019',
             'type' => 'Mercedes Benz Sprinter, KTW',
-        ], 
+        ],
         '020' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=176041665',
             'radioid' => '2-41/020',
             'type' => 'Mercedes Benz Sprinter, KTW',
-        ], 
+        ],
         '021' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089307',
             'radioid' => '2-41/021',
@@ -1772,7 +1787,7 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089546',
             'radioid' => '2-41/311',
             'type' => 'VW Caddy',
-        ], 
+        ],
         '325' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=154655581',
             'radioid' => '2-41/325',
@@ -1788,7 +1803,7 @@ function getFZGTagebuchLink($vehicle) {
             'radioid' => '2-41/322',
             'type' => 'VW Caddy, Ausgemustert?',
         ], 
-        
+
         '326' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=154640478',
             'radioid' => '2-41/326',
@@ -1828,18 +1843,27 @@ function getFZGTagebuchLink($vehicle) {
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=130089530',
             'radioid' => '2-41/369',
             'type' => 'VW Caddy',
-        ], 
+        ],
         '441' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=184659186',
             'radioid' => '2-41/441',
             'type' => 'VW Caddy',
-        ], 
+        ],
         '467' => [
             'link' => 'https://intranet.wrk.at/confluence/pages/viewpage.action?pageId=184659242',
             'radioid' => '2-41/467',
             'type' => 'Seat Mii, Rufhilfe',
-        ], 
+        ],
     ];
+
+	if (!isset($vehicles[$vehicle]))
+	{
+		$vehicles[$vehicle] = [
+			"link" => 'https://intranet.wrk.at/confluence/display/RD/Fahrzeugtagebuch',
+			'radioid' => '2-41/'.$vehicle,
+			'type' => "Missing from List",
+		];
+	}
     return $vehicles[$vehicle];
 }
 
@@ -1860,13 +1884,13 @@ function healthcheck($username) {
     //     if(is_null($user) || empty($user)) {
     //         $user = new User();
     //     }
-    //     $user->username = $username; 
-    //     $user->healthcheckuuid = $healthCheckUUID; 
+    //     $user->username = $username;
+    //     $user->healthcheckuuid = $healthCheckUUID;
     //     $user->save();
     //     $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
     // }
     // try{
-    //     file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));        
+    //     file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));
     // } catch(Exception $ex) {
     //     $GLOBALS["eventlog"]->error($ex);
     // }
@@ -1883,7 +1907,7 @@ function checkCredentials($username, $password) {
         $authResponseBody = (string)$authRequest->getBody();
         $authResponseCode = $authRequest->getStatusCode();
         if($authResponseCode===200) {
-            return true; 
+            return true;
         }
     } catch (GuzzleHttp\Exception\ClientException $cex) {
         $GLOBALS["eventlog"] = new Logger('wrk-dutyschedule-events');
@@ -1908,7 +1932,7 @@ function checkKuferCredentials($username, $password) {
         $authRequest = $client->request('GET', '/' , ['auth' => [$username, $password], 'allow_redirects' => true, 'cookies' => $jar]);
         $authResponseCode = $authRequest->getStatusCode();
         if($authResponseCode===200) {
-            return true; 
+            return true;
         }
     } catch (GuzzleHttp\Exception\ClientException $cex) {
         // $authResponseCode = $auth->response->getStatusCode();
@@ -1930,7 +1954,7 @@ function createCheck($username) {
         "grace" => 3600,
     ];
     $healthcheckCreateResponse = $g->request('POST', 'https://servicehealth.danielsteiner.net/api/v1/checks/', ['json' => $data]);
-    
+
     $response = json_decode((string)$healthcheckCreateResponse->getBody());
     $parts = explode("/", $response->ping_url);
     $uuid = $parts[count($parts)-1];

@@ -7,7 +7,9 @@
         "nesbot/carbon": "^2.57",
         "monolog/monolog": "^2.3",
         "illuminate/database": "^8.83",
-        "filp/whoops": "^2.14"
+        "filp/whoops": "^2.14",
+        "ext-openssl": "*",
+        "ext-json": "*"
     },
     "require-dev": {
         "symfony/var-dumper": "^5.4"
