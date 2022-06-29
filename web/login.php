@@ -63,7 +63,7 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
             <label for="calendarurl" class="sr-only">Adresse für den Kalender</label>
             <input type="text" id="calendarurl" name="calendarurl" class="form-control" value="'.$baseurl.'?auth='.$hash.'" required autofocus>
             <button class="btn btn-lg btn-niu btn-block" id="copy" type="submit">Link Kopieren</button>
-            <p class="mt-5 mb-3 text-muted">&copy; 2019, Daniel Steiner - <a href="/disclaimer.html">Disclaimer</a></p>
+            <p class="mt-5 mb-3 text-muted">&copy; 2019 - '.date("Y").', Daniel Steiner, Arash Dalir - <a href="/disclaimer.html">Disclaimer</a></p>
             <div class="tutorials">
                 <a href="https://www.buero-kaizen.de/mit-outlook-kalender-abonnieren/">Kalenderabonnement in Outlook einrichten</a><br>
                 <a href="http://www.ff-altenschwand.de/seiten/service/ical/android.html">Kalender auf Android über Gmail Konto abonnieren</a><br>
@@ -116,7 +116,7 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
                 <input type="password" id="kufer_password" name="kufer_password" class="form-control" placeholder="Passwort">
             </div>
             <button class="btn btn-lg btn-niu btn-block" type="submit">Anmelden</button>
-            <p class="mt-5 mb-3 text-muted">&copy; 2019, Daniel Steiner - <a href="/disclaimer.html">Disclaimer</a></p>
+            <p class="mt-5 mb-3 text-muted">&copy; 2019 - '.date("Y").', Daniel Steiner, Arash Dalir - <a href="/disclaimer.html">Disclaimer</a></p>
         </form>
         <script>
         document.querySelector("#is_lba").addEventListener("change",function(){
