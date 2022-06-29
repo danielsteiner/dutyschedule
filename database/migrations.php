@@ -1,5 +1,5 @@
 <?php
-require "../boot/bootstrap.php";
+require __DIR__. "/../boot/bootstrap.php";
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 try {

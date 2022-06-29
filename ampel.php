@@ -97,8 +97,8 @@ $course_path = "/Kripo/Kufer/SearchCourse.aspx";
 $employee_details = '/Kripo/Employee/detailEmployee.aspx';//?EmployeeId=ecffec64-62c2-4f73-bd02-a790013f88fe
 
 try {
-    $auth = $client->request('GET', $base_uri, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-    $header_response = $client->request('GET', $header_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $auth = $client->request('GET', $base_uri, getHttpClientOptions());
+    $header_response = $client->request('GET', $header_path, getHttpClientOptions());
     $header = (string)$header_response->getBody();
 
     $dom = new Dom;
@@ -247,14 +247,14 @@ try {
     $dnrs = $dienstnummern;
     $userid = explode("=", $userlink->getAttribute('href'))[1];
 
-    $cc_response = $client->request('GET', 'https://niu.wrk.at/Kripo/external/ControlCenterHead.aspx?strip=true',  ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]); 
-    $cc_response = $client->request('GET', 'https://niu.wrk.at/Kripo/external/ControlCenterHead.aspx?strip=true',  ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]); 
+    $cc_response = $client->request('GET', 'https://niu.wrk.at/Kripo/external/ControlCenterHead.aspx?strip=true',  getHttpClientOptions()); 
+    $cc_response = $client->request('GET', 'https://niu.wrk.at/Kripo/external/ControlCenterHead.aspx?strip=true',  getHttpClientOptions()); 
     $control_center = (string)$cc_response->getBody();
     $ccenterdom = $dom->loadStr($control_center);
     $lvstat_link = $ccenterdom->find('#m_lbtLVStatistik')[0]->getAttribute('href');
     $employee_id = explode("=", explode('?', $lvstat_link)[1])[1];
     //* Get Permissions
-    $employee_response = $client->request('GET', $employee_details.'?EmployeeId='.$employee_id, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $employee_response = $client->request('GET', $employee_details.'?EmployeeId='.$employee_id, getHttpClientOptions());
     $dom = new Dom;
     $dom->loadStr((string)$employee_response->getBody());
     $employee_page = $dom->innerHtml;
@@ -320,8 +320,8 @@ try {
 
 
     //* Grabbing Courses
-    $courses_response = $client->request('GET', $course_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-    $courses_response = $client->request('GET', $course_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $courses_response = $client->request('GET', $course_path, getHttpClientOptions());
+    $courses_response = $client->request('GET', $course_path, getHttpClientOptions());
 
     
     $dom->loadStr((string)$courses_response->getBody());
@@ -352,10 +352,10 @@ try {
     $postData['__KeyPostfix'] = $keypostfix;
     $postData['__EVENTVALIDATION'] = $eventvalidation;
     
-    $courses_response = $client->request('POST', $course_path, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    $courses_response = $client->request('POST', $course_path, getHttpClientOptions(['form_params' => $postData,]));
     $courses = (string)$courses_response->getBody();
     if(strpos($courses, "Anmeldestatus") === false) {
-        $courses_response = $client->request('GET', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+        $courses_response = $client->request('GET', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id, getHttpClientOptions());
         $dom = new Dom;
         $dom->loadStr((string)$courses_response->getBody());
         $eventvalidation = $dom->find('#__EVENTVALIDATION')->getAttribute("value");
@@ -382,8 +382,8 @@ try {
         $postData['__KeyPostfix'] = $keypostfix;
         $postData['__EVENTVALIDATION'] = $eventvalidation;
 
-        $courses_response = $client->request('POST', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id,  ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]); 
-        $courses_response = $client->request('POST', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id,  ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]); 
+        $courses_response = $client->request('POST', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id,  getHttpClientOptions(['form_params' => $postData,]));
+        $courses_response = $client->request('POST', 'https://niu.wrk.at/Kripo/Kufer/SearchCourse.aspx?EmployeeId='.$employee_id,  getHttpClientOptions(['form_params' => $postData,]));
         $courses = (string)$courses_response->getBody();
         // echo $courses; 
         // die();
@@ -437,7 +437,7 @@ try {
 
             $a = $course_link->find('a');
             $courselink = $a->getAttribute('href');
-            $details_html = (string)$client->request('GET', "/Kripo/Kufer/" . $courselink, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]])->getBody();
+            $details_html = (string)$client->request('GET', "/Kripo/Kufer/" . $courselink, getHttpClientOptions())->getBody();
 
             $course_dom = new Dom;
             $course_dom->loadStr($details_html);
@@ -532,8 +532,8 @@ try {
     // dd($allCourses);
     
 
-    // $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-    // $statistics_response = $client->request('GET', $statistics_path . $userid, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    // $statistics_response = $client->request('GET', $statistics_path . $userid, getHttpClientOptions());
+    // $statistics_response = $client->request('GET', $statistics_path . $userid, getHttpClientOptions());
 
     // $dom = new Dom;
     // $dom->loadStr((string)$statistics_response->getBody());
@@ -553,8 +553,8 @@ try {
     //     "ctl00\$main\$m_JoinBrokenDuties" => "on"
     // ];
 
-    // $statistics_response = $client->request('POST', $statistics_path . $userid, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
-    // $statistics_response = $client->request('POST', $statistics_path . $userid, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    // $statistics_response = $client->request('POST', $statistics_path . $userid, getHttpClientOptions(['form_params' => $postData,]));
+    // $statistics_response = $client->request('POST', $statistics_path . $userid, getHttpClientOptions(['form_params' => $postData,]));
 
     // $statistics = (string)$statistics_response->getBody();
 
@@ -580,7 +580,7 @@ try {
     // $alarms = null;
     // if($debug) {
     //     $alarms = []; 
-    //     $planned_duties_request = $client->request('GET', $planned_duty_path, ['auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    //     $planned_duties_request = $client->request('GET', $planned_duty_path, getHttpClientOptions());
     //     $planned_duties_response = (string)$planned_duties_request->getBody();
     //     $relevant_duties = [
     //         "RTW RKL-1" => "142ae84d-c2a4-4464-a6ac-60538a28ce98",
@@ -622,7 +622,7 @@ try {
     //     foreach($relevant_duties as $dutyname => $dutytype) {
     //         $postData["ctl00\$main\$ddDutyType"] = $dutytype; 
 
-    //         $planned_duties_request = $client->request('POST', $planned_duty_path, ['form_params' => $postData, 'auth' => [$GLOBALS["username"], $GLOBALS["password"]], 'allow_redirects' => true, 'cookies' => $GLOBALS["jar"]]);
+    //         $planned_duties_request = $client->request('POST', $planned_duty_path, getHttpClientOptions(['form_params' => $postData,]));
     //         $planned_duties_response = (string)$planned_duties_request->getBody();
             
     //         $plannedDom->loadStr($planned_duties_response);
