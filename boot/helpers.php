@@ -17,7 +17,11 @@ use PHPHtmlParser\Exceptions\EmptyCollectionException;
 $i = 0;
 
 function env($var) {
-    return $_ENV[$var];
+    if(array_key_exists($var, $_ENV)) {
+        return $_ENV[$var];
+    } else {
+        return null; 
+    }
 }
 
 function getHttpClientOptions($other_params = null){
@@ -73,6 +77,7 @@ function parseAmb($row) {
     $duty["team"] = $details["team"];
     return $duty;
 }
+
 function filterUnusualEndTime($html) {
     $endtime = null;
     preg_match('/([0-1][0-9]|[2][0-3]):([0-5][0-9])/', $html, $matches);
@@ -115,6 +120,7 @@ function filterUnusualEndTime($html) {
     }
     return $endtime;
 }
+
 function parseRDDuty($duty, $title) {
     $fixed = false;
 
@@ -1086,7 +1092,7 @@ function parseLocation($title, $location) {
     } else {
         $loc = Location::whereShortlabel($title)->first();
         if(!is_null($loc)) {
-            dd($title);
+            // dd($title);
             $loc = $loc->toArray();
         }
 		else
@@ -1185,7 +1191,7 @@ function makeICalendar($events, $name, $dateStart, $dateEnd, $alarms = null) {
 
     foreach ($events as $event) {
         try {
-            $GLOBALS["eventlog"]->info(json_encode($event));
+            // $GLOBALS["eventlog"]->info(json_encode($event));
             $vcal .= makeVEVENT($event);
         } catch (Exception $ex) {
             throw $ex;
@@ -1257,9 +1263,15 @@ function makeVEVENT($event) {
     $vevent .= "DESCRIPTION:" . $description . "\r\n";
     $vevent .= "X-ALT-DESC;FMTTYPE=text/html:<html><body>" . $description . "</body></html>\r\n";
     $vevent .= "STATUS:" . $event['status'] . "\r\n";
-    $vevent .= "TRANSP:OPAQUE\r\n";
-
+    if($event['status'] === 'CONFIRMED') {
+        $vevent .= "TRANSP:OPAQUE\r\n";
+    } else {
+        $vevent .= "TRANSP:TRANSPARENT\r\n";
+    }
+    $hasLoc = false;
     if(array_key_exists('location', $event)) {
+        
+        $hasLoc = true;
         if(!is_null($event['location']) && !empty($event["location"])){
             if(!is_array($event["location"])) {
                 $loc = $event["location"]->toArray();
@@ -1267,6 +1279,7 @@ function makeVEVENT($event) {
                 $loc = $event["location"];
             }
             if (is_array($loc)) {
+                // $vevent .= "LOCATION;VVENUE=V0-001-000153774-0@wrkdpl.com:" . $loc['label'] . " " . $loc['address'] . "\r\n";
                 $vevent .= "LOCATION:" . $loc['label'] . " " . $loc['address'] . "\r\n";
                 $vevent .= "GEO:" . $loc['lat'] . ";" . $loc['lon'] . "\r\n";
             }
@@ -1296,10 +1309,30 @@ function makeVEVENT($event) {
     }
     if(array_key_exists('url', $event)) {
         $vevent .= "URL:".$event["url"]."\r\n";
-    } else {
-        // dump($event);
-    }
+    } 
+    
     $vevent .= "END:VEVENT\r\n";
+    // if($hasLoc) {
+    //     $vevent .= "BEGIN:VVENUE\r\n";
+    //     $vevent .= "UID:V0-001-000153774-0@eventful.com\r\n";
+    //     $vevent .= "NAME:The Venue\r\n";
+    //     $vevent .= "DESCRIPTION: The Venues is a home for live music and southern-inspired cuisine in an environment celebrating the Afric an American cultural contributions of blues music and folk art.\r\n";
+    //     $vevent .= "STREET-ADDRESS:1055 Fifth Avenue\nSuite 4\r\n";
+    //     $vevent .= "EXTENDED-ADDRESS:Stage 2\r\n";
+    //     $vevent .= "LOCALITY:San Diego\r\n";
+    //     $vevent .= "REGION;ABBREV=CA:California\r\n";
+    //     $vevent .= "COUNTRY;ABBREV=US;ABBREV=USA:United States\r\n";
+    //     $vevent .= "POSTAL-CODE:92101\r\n";
+    //     $vevent .= "TZID=US/Pacific\r\n";
+    //     $vevent .= "GEO:32.716220;-117.160156\r\n";
+    //     $vevent .= "URL;TYPE=Map:http://maps.google.com/maps?q=1055%20Fifth%20Avenue%2C%20San%20Diego%2C%20California%20&hl=en\r\n";
+    //     $vevent .= "URL;TYPE=Eventful Listing:http://eventful.com/venues/V0-001-000153774-0\r\n";
+    //     $vevent .= "URL;TYPE=Official Site:http://www.example.com/venues/clubvenues/sandiego/\r\n";
+    //     $vevent .= "TEL;TYPE=Box Office:619.299.2583\r\n";
+    //     $vevent .= "CATEGORIES:music concert\r\n";
+    //     $vevent .= "END:VVENUE\r\n";
+    // }
+
     return $vevent;
 }
 
@@ -1875,27 +1908,6 @@ function strpos_arr($haystack, $needle) {
     return false;
 }
 
-function healthcheck($username) {
-    return null;
-    // $user = User::whereUsername($username)->first();
-    // if(is_null($user)) {
-    //     $healthCheckUUID = createCheck($username);
-    //     $user = User::whereUsername($username)->first();
-    //     if(is_null($user) || empty($user)) {
-    //         $user = new User();
-    //     }
-    //     $user->username = $username;
-    //     $user->healthcheckuuid = $healthCheckUUID;
-    //     $user->save();
-    //     $GLOBALS["eventlog"]->info("Created new Healthcheck for ".$username);
-    // }
-    // try{
-    //     file_get_contents("https://servicehealth.danielsteiner.net/ping/".trim($user->healthcheckuuid));
-    // } catch(Exception $ex) {
-    //     $GLOBALS["eventlog"]->error($ex);
-    // }
-}
-
 function checkCredentials($username, $password) {
     $client = new GuzzleHttp\Client([
         'base_uri' => env("DATASOURCE_URL"),
@@ -1943,20 +1955,4 @@ function checkKuferCredentials($username, $password) {
         }
         return false;
     }
-}
-
-function createCheck($username) {
-    $g = new GuzzleHttp\Client();
-    $data = [
-        'api_key' => env('SERVICEHEALTH_KEY'),
-        "name" => "Kalender von ".$username,
-        "timeout" => 21600,
-        "grace" => 3600,
-    ];
-    $healthcheckCreateResponse = $g->request('POST', 'https://servicehealth.danielsteiner.net/api/v1/checks/', ['json' => $data]);
-
-    $response = json_decode((string)$healthcheckCreateResponse->getBody());
-    $parts = explode("/", $response->ping_url);
-    $uuid = $parts[count($parts)-1];
-    return $uuid;
 }

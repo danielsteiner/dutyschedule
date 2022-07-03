@@ -61,7 +61,7 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
     <a href="https://github.com/danielsteiner/dutyschedule" style="position: fixed;right: 0px;top: 0px;"><img width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_red_aa0000.png?resize=149%2C149" class="attachment-full size-full" alt="Fork me on GitHub" data-recalc-dims="1"></a>
         <form class="form-signin">
             <label for="calendarurl" class="sr-only">Adresse für den Kalender</label>
-            <input type="text" id="calendarurl" name="calendarurl" class="form-control" value="'.$baseurl.'?auth='.$hash.'" required autofocus>
+            <input type="text" id="calendarurl" name="calendarurl" class="form-control" value="'.$baseurl.'/'.$hash.'.ics" required autofocus>
             <button class="btn btn-lg btn-niu btn-block" id="copy" type="submit">Link Kopieren</button>
             <p class="mt-5 mb-3 text-muted">&copy; 2019 - '.date("Y").', Daniel Steiner, Arash Dalir - <a href="/disclaimer.html">Disclaimer</a></p>
             <div class="tutorials">

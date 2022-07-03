@@ -7,7 +7,8 @@ use Monolog\ErrorHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use PHPHtmlParser\Exceptions\EmptyCollectionException;
-
+// dump($_SERVER);
+// dd($_REQUEST);
 
 $client = new GuzzleHttp\Client([
     'base_uri' => env("DATASOURCE_URL"),
@@ -42,13 +43,20 @@ if(array_key_exists("end", $_GET)){
 
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
-    if (array_key_exists("auth", $_GET)) {
+    $auth = null;
+    if (array_key_exists("auth", $_GET)) { $auth = $_GET["auth"]; }    
+    if(strpos($_SERVER["REQUEST_URI"], ".ics") !== false) {
+        $p = explode('?', $_SERVER["REQUEST_URI"]);
+        $auth = substr($p[0], 1, -5);
+        
+    }
+    if (!is_null($auth)) {
         $cipher = "aes-128-ctr";
 
         if (in_array($cipher, openssl_get_cipher_methods())) {
             $ivlen = openssl_cipher_iv_length($cipher);
             $iv = openssl_random_pseudo_bytes($ivlen);
-            $authstring = $_GET["auth"];
+            $authstring = $auth;
             if(strpos($authstring, " ") !== false) {
                 $authstring = str_replace(" ", "+", $authstring);
             }
@@ -101,21 +109,20 @@ if (!isset($username) && !isset($password)) {
     die();
 }
 $GLOBALS["requestingUser"] = $username;
-$GLOBALS["eventlog"] = new Logger('wrk-dutyschedule-events');
-$GLOBALS["eventlog"]->pushHandler(new StreamHandler(__DIR__."/../logs/events_".$GLOBALS["requestingUser"]."_".date('y-m-d').".log", Logger::INFO));
+// $GLOBALS["eventlog"] = new Logger('wrk-dutyschedule-events');
+// $GLOBALS["eventlog"]->pushHandler(new StreamHandler(__DIR__."/../logs/events_".$GLOBALS["requestingUser"]."_".date('y-m-d').".log", Logger::INFO));
 
 if(!checkCredentials($username, $password)) {
     header('Location: login.php');
     die();
 }
 
-$debug = env("APP_DEBUG");
+$GLOBALS["debug"] = env("APP_DEBUG");
 if(array_key_exists("debug", $_GET)) {
-    $debug = true;
+    $GLOBALS["debug"] = true;
 }
 
 $log->info("Request for " . $username." started");
-
 $base_uri = $client->getConfig("base_uri");
 $header_path = "/Kripo/Header.aspx";
 $niu_today_path = "/Kripo/Today/Today.aspx";
@@ -798,13 +805,13 @@ try {
         }
     }
     $log->info("Request for " . $username." has ".count($events)." Events");
+
+	header('Content-Type: text/calendar; charset=utf-8');
+	header('Content-Disposition: attachment; filename=dienstplan_'.str_replace(".", "", $GLOBALS["username"]).'.ics');
+	
     echo makeICalendar($events, $name, $dateStart, $dateEnd, $alarms);
-	//if(!$GLOBALS["debug"])
-	{
-		header('Content-Type: text/calendar; charset=utf-8');
-		header('Content-Disposition: attachment; filename=dienstplan_'.str_replace(".", "", $GLOBALS["username"]).'.ics');
-	}
-	die();
+
+    die();
 } catch (GuzzleHttp\Exception\TooManyRedirectsException $rex) {
     $error->error("Too many redirections! ". $rex->getMessage());
 }
