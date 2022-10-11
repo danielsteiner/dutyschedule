@@ -47,7 +47,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     if (array_key_exists("auth", $_GET)) { $auth = $_GET["auth"]; }    
     if(strpos($_SERVER["REQUEST_URI"], ".ics") !== false) {
         $p = explode('?', $_SERVER["REQUEST_URI"]);
-        $auth = substr($p[0], 1, -5);
+        $auth = substr(array_pop($p), 1, -4);
         
     }
     if (!is_null($auth)) {
