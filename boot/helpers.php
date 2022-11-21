@@ -136,7 +136,6 @@ function parseRDDuty($duty, $title) {
 
     $date = parseDate($details[1]->innerHtml, $details[2]->innerHtml);
 
-
     $end = $date["end"];
     $duty = [
         'day' => $details[0]->innerHtml,
@@ -294,7 +293,6 @@ function parseRDDuty($duty, $title) {
             $remark = trim($details[6]->innerHtml);
         }
     }
-
     if (stripos($title, "KTW") !== false) {
         $duty["dutytype"] = "KTW";
     }
@@ -310,14 +308,15 @@ function parseRDDuty($duty, $title) {
     if (stripos($title, "HIO") !== false) {
         $duty["dutytype"] = "HIO";
     }
-    $endTime = filterUnusualEndTime($remark);
-
-    if($endTime !== null) {
-        $ds = new CarbonImmutable($details[1]->innerHtml);
-        $de = $ds->addDays(1);
-        $duty["time"]["end"] = CarbonImmutable::parse($de->year . "-" . $de->month . "-" . $de->day . " " . $endTime, "Europe/Vienna");
+    if(!$fixed) {
+        $endTime = filterUnusualEndTime($remark);
+        if($endTime !== null) {
+            $ds = new CarbonImmutable($details[1]->innerHtml);
+            $de = $ds->addDays(1);
+            $duty["time"]["end"] = CarbonImmutable::parse($de->year . "-" . $de->month . "-" . $de->day . " " . $endTime, "Europe/Vienna");
+        }
     }
-
+    
     $parsedTitle = parseTitle($title, $location, $remark);
     $t = [$pos1, $pos2, $pos3, $pos4, $pos5];
     $team = [];
