@@ -7,8 +7,6 @@ use Monolog\ErrorHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use PHPHtmlParser\Exceptions\EmptyCollectionException;
-// dump($_SERVER);
-// dd($_REQUEST);
 
 $client = new GuzzleHttp\Client([
     'base_uri' => env("DATASOURCE_URL"),
@@ -47,8 +45,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     if (array_key_exists("auth", $_GET)) { $auth = $_GET["auth"]; }    
     if(strpos($_SERVER["REQUEST_URI"], ".ics") !== false) {
         $p = explode('?', $_SERVER["REQUEST_URI"]);
-        $auth = substr($p[0], 1, -5);
-        
+        $auth = substr($p[0], 1, -4);
+        $user = Models\User::where(['hash' =>  trim($auth)])->first();
+        $auth = $user->crypt;        
     }
     if (!is_null($auth)) {
         $cipher = "aes-128-ctr";
@@ -97,7 +96,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         header('WWW-Authenticate: Basic realm="WRK Dienstplanexport"');
         header('HTTP/1.0 401 Unauthorized');
         header('Location: login.php');
-        exit;
+        die();
     }
 } else {
     $username = $_SERVER['PHP_AUTH_USER'];
@@ -121,7 +120,6 @@ $GLOBALS["debug"] = env("APP_DEBUG");
 if(array_key_exists("debug", $_GET)) {
     $GLOBALS["debug"] = true;
 }
-
 $log->info("Request for " . $username." started");
 $base_uri = $client->getConfig("base_uri");
 $header_path = "/Kripo/Header.aspx";

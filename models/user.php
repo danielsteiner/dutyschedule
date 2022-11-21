@@ -15,7 +15,7 @@ class User extends Model
     * @var array
     */
     protected $fillable = [
-        'username', 'healthcheckuuid'
+        'username', 'hash', 'crypt'
     ];
 
 }

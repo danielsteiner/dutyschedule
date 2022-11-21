@@ -1,5 +1,6 @@
 <?php 
 require "../boot/bootstrap.php";
+use Models\User;
 
 if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST)) {
     $username = $_POST["username"];
@@ -43,7 +44,14 @@ if(array_key_exists('username', $_POST) && array_key_exists('password', $_POST))
         );
         $hash = base64_encode($iv.$ciphertext);
     }
-
+    $user = User::firstOrCreate(['username' => $username]);
+    $user->crypt = $hash;
+    if(empty($user->hash)) {
+        $user->hash = crc32($hash);
+    }
+    $hash = $user->hash;
+    $user->save();
+    
     $baseurl = env("SCRIPT_URL");
     echo '
     <!doctype html>
